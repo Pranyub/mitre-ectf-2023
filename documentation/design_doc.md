@@ -43,9 +43,10 @@ struct unlock_packet {
     uint8_t magic;
     uint8_t car_id;
     char[64] feature_list; //some kind of encoding. longer = better? (more entropy for rsa)
-    uint8_t[447] rand; //padding to get 512 bytes (necesssary?)
-    uint8_t[32] hash; //hash over featurelist + carid?
-    uint8_t[32] signature; //signature over hash (or maybe just featurelist + carid itself?)
+    char[64] rand_bytes; //rand
+    uint8_t[383] pad; //padding to get 512 bytes (necesssary?)
+    uint8_t[32] hash; //hash over above?
+    uint8_t[32] signature; //signature over hash (or maybe just hash contents instead)
 }
 ```
 
