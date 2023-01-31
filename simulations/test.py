@@ -38,7 +38,7 @@ class Fob:
 
         if feature.car_id != self.car_id:
             return 'error: wrong car'
-            
+
         elif self.features.count(feature) > 0:
             return 'error: feature already exists'
 
@@ -59,6 +59,8 @@ class Fob:
             
         elif cmd == 'feature_add':
             return self.verify_and_add(cmd.split(' ')[1])
+        
+        return 'error: invalid command'
 
 class Car:
     car_key = []
