@@ -73,7 +73,7 @@ struct Message {
 ```
 
 The following are valid packet types:
-```
+```rust
 unlock (0x33) | paired fob -> car
 pair   (0x44) | unpaired fob -> paired fob
 ```
@@ -93,7 +93,7 @@ struct Challenge{
     uint8_t[16] challenge; //A specific randomly generated 16-byte pin used for the challenge.
     uint8_t[16] hash; // The challenge hashed by a custom hashing algorithm - prevents forging challenge messages
     uint8_t[64] signature; //Signature, this can be hashed in fob to further verify the original sender
-    uint8_t[25] padding; //random bit padding to reach 128 bytes - provides minimal obfuscation
+    uint8_t[25] padding; //random bit padding to reach 128 bytes
 }
 ```
 
@@ -129,7 +129,7 @@ struct Unlock_packet {
     uint8_t car_id;
     char[64] feature_list; //some kind of encoding. longer = better? (more entropy for rsa)
     char[64] rand_bytes; //rand
-    uint8_t[383] pad; //random bit padding to get 512 bytes
+    uint8_t[318] pad; //random bit padding to get 512 bytes.
     uint8_t[32] hash; //hash over above?
     uint8_t[32] signature; //signature over hash (or maybe just hash contents instead)
 }
@@ -137,7 +137,7 @@ struct Unlock_packet {
 Upon recieving an unlock request from the fob, the car will first check if there is are any features needed to be added. If there are, then the car will verify that the features are intended for it and then add the features to the car. 
 Afterwards, the car will send a challenge message (see above) to the fob.
 
-A paired fob, which contains the car's encryption key, will be able to encrypt the challenge and send it back to the car. At this point, the car will be able to use its private key to decrypt and verify that the challenge sent and recieved match. Upon verification of the challenge's correctness, it will send it's unlock request.
+A paired fob, which contains the car's encryption key, will be able to encrypt the challenge and send it back to the car. At this point, the car will be able to use its private key to decrypt and verify that the challenge sent and recieved match (SR1). Upon verification of the challenge's correctness, it will send it's unlock request.
 
 ---
 
