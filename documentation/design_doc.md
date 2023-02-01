@@ -9,7 +9,7 @@
     - Universal fob key
     - Car encryption key
     - Car id
-    - (Salted?) SHA-2 Hash of car pin
+    - Salted SHA-2 Hash of car pin
 
 ## Unpaired Fob
 - Requirements:
@@ -90,13 +90,16 @@ A challenge is a special type of transaction that is used to verify the authenti
 struct Challenge{
     uint8_t magic; //packet type
     uint16_t nonce; //nonce
-    char[16] challenge; //A specific randomly generated 16-byte pin used for the challenge.
-    uint8_t[64] signature; //optional signature
-    uint8_t[15] padding; //padding to reach 256 bytes (pls check my math i am very dead rn)
+    uint8_t[16] challenge; //A specific randomly generated 16-byte pin used for the challenge.
+    uint8_t[16] hash; // The challenge hashed by a custom hashing algorithm - prevents forging challenge messages
+    uint8_t[64] signature; //Signature, this can be hashed in fob to further verify the original sender
+    uint8_t[25] padding; //random bit padding to reach 128 bytes - provides minimal obfuscation
 }
 ```
 
-The challenge will be a randomly generated one time string that will be encrypted in RSA. Upon recieving a solution, the original challenge is verified. [Insert challenge mechanic here once we figure out details]
+The challenge will be a randomly generated one time string that will be encrypted in __ECDSA__. Upon recieving a solution, the original challenge is verified. There are two types of challenge solutions, happening when a paired fob sends a challenge during pairing and when car sends a challenge to a paired fob during an unlock request.
+
+We expect our challenge mechanic will have the most attacks targeted towards it, as it is integral to the functionality of our fob devices.
 
 ---
 
@@ -121,15 +124,34 @@ Upon recieving a valid hello message, a conversation is initiated between the se
 An unlock request is a type of conversation that is initiated by a paired fob to the car it is paired with. These messages have the default structure as shown below:
 
 ```c
-struct unlock_packet {
+struct Unlock_packet {
     uint8_t magic;
     uint8_t car_id;
     char[64] feature_list; //some kind of encoding. longer = better? (more entropy for rsa)
     char[64] rand_bytes; //rand
-    uint8_t[383] pad; //padding to get 512 bytes
+    uint8_t[383] pad; //random bit padding to get 512 bytes
     uint8_t[32] hash; //hash over above?
     uint8_t[32] signature; //signature over hash (or maybe just hash contents instead)
 }
 ```
 Upon recieving an unlock request from the fob, the car will first check if there is are any features needed to be added. If there are, then the car will verify that the features are intended for it and then add the features to the car. 
-Afterwards, the car will send a challenge
+Afterwards, the car will send a challenge message (see above) to the fob.
+
+A paired fob, which contains the car's encryption key, will be able to encrypt the challenge and send it back to the car. At this point, the car will be able to use its private key to decrypt and verify that the challenge sent and recieved match. Upon verification of the challenge's correctness, it will send it's unlock request.
+
+---
+
+## Pair Request
+
+A pair request is a type of conversation that is initiated by an unpaired fob to a fob that it is paired with. These messages have the default structure as shown below:
+
+```c
+struct Pair_packet{
+    uint8_t magic;
+    char[64] rand_bytes; //rand 
+    uint8_t[32] hash; //hash
+    uint8_t[32] signature; //signature over hash (or maybe just hash contents instead)
+}
+```
+
+As an unpaired fob does not have much ... ???? [dunno how this works]
