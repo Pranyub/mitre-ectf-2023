@@ -24,7 +24,8 @@ There are a few requirements within the system design that need to be met in ord
     - There is a timeout on pairs permitted; some sort of reflash protection is needed as well
 - Features are not forgeable (SR5)
     - Features are **signed** by the manufacturer
-- Features are unique to each car (SR6)
+- Features packaged for one car should not be enableable on another (SR6)
+    - Signing of features will include the car it was intented for.
 
 ---
 
