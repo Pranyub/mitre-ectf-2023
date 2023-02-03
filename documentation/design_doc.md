@@ -78,7 +78,7 @@ Conversations are a **two way** handshake between embedded devices comprised of 
 
 Before any conversation, it is necessary to exchange certificates to ensure messages have not been tampered with using the `key_exchange` message. If a **factory-signed** public key is presented, it is stored in the recieving device and used to verify succeeding messages in the sequence.
 
-<img src=../assets/img/2023-02-03-14-23-40.png>
+<img src=../assets/img/2023-02-03-14-23-40.png width=75%>
 
     coloring is hard - the first two messages are part of the key exchange; the following four are part of the conversation.
 
@@ -119,7 +119,7 @@ struct status {
 }
 ```
 
-<img src=../assets/img/2023-02-03-14-44-16.png>
+<img src=../assets/img/2023-02-03-14-44-16.png width=75%>
 
 ---
 
