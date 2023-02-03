@@ -19,7 +19,7 @@ There are a few requirements within the system design that need to be met in ord
 - Replay attacks **must** be unachievable (SR2)
     - A random nonce can be used in communication
 - Communication is meaningless to those without private keys (SR3)
-    - Communication can be encrypted using ECC
+    - Communication can be encrypted using ECC (?)
 - The pairing pin is **not** brute-forceable (SR4)
     - There is a timeout on pairs permitted; some sort of reflash protection is needed as well
 - Features are not forgeable (SR5)
@@ -120,6 +120,31 @@ struct status {
 ```
 
 <img src=../assets/img/2023-02-03-14-44-16.png width=75%>
+<!--[![](https://mermaid.ink/img/pako:eNp1UclugzAQ_ZWRT66U_ACHVmFLoi6HkqpUpYdpmIAVsJExrVDIv9dsSnKoT37zlpnRnNhepcQclmmsctj5iQT7nriHGp6prjEjCAv1u89Rm7uRXX26SpkvWC7vu60UBt5Wr7sFBNJoVbUduPwdbfWgNJRjxGR0ewt4fNdWBKKGR2qX8cNEekPeB9Ud-DwSmUTTaIIfLEQ6a_yLJuCRUZavmm84UjsJ4qGDO4JgADGPSKbzMjdBL6qDkAdaKz3Vw9FyPVEvWv830HrQjxNtuKekEbKhW7IP2N502Vx32c6ALVhJukSR2nucejJhJqeSEubYb4r6mLBEnq0OG6OiVu6ZY3RDC9ZUKRryBdozlsw5YFHT-Q_nJ421?type=png)](https://mermaid.live/edit#pako:eNp1UclugzAQ_ZWRT66U_ACHVmFLoi6HkqpUpYdpmIAVsJExrVDIv9dsSnKoT37zlpnRnNhepcQclmmsctj5iQT7nriHGp6prjEjCAv1u89Rm7uRXX26SpkvWC7vu60UBt5Wr7sFBNJoVbUduPwdbfWgNJRjxGR0ewt4fNdWBKKGR2qX8cNEekPeB9Ud-DwSmUTTaIIfLEQ6a_yLJuCRUZavmm84UjsJ4qGDO4JgADGPSKbzMjdBL6qDkAdaKz3Vw9FyPVEvWv830HrQjxNtuKekEbKhW7IP2N502Vx32c6ALVhJukSR2nucejJhJqeSEubYb4r6mLBEnq0OG6OiVu6ZY3RDC9ZUKRryBdozlsw5YFHT-Q_nJ421) -->
+---
+
+## Commands
+
+This is where we're lacking as of right now:
+
+
+Unlock
+```c
+struct Unlock {
+    uint8_t unlock_magic; //prob necessary, right?
+    uint8_t car_id;
+    uint8_t[30] car_secret_proof; //???
+}
+
+```
+
+Pair
+```c
+struct Pair {
+    uint8_t pair_magic; //necessary?
+    uint8_t[31] pin_proof; //???
+}
+```
 
 ---
 
