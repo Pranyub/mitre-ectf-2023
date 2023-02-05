@@ -15,17 +15,17 @@ These security requirements **must** be met:
 
 There are a few requirements within the system design that need to be met in order to achieve all Security Requirements:
 - The car **must** be able to verify the paired fob's integrity (SR1)
-    - A fob can sign a message using a car's private key
+    - Fobs will sign messages with the car's private key when sending an unlock request.
 - Replay attacks **must** be unachievable (SR2)
-    - A random nonce can be used in communication
+    - Two randomly generated nonces will be used in communications, preventing capturing one conversation and replaying it to another device.
 - Communication is meaningless to those without private keys (SR3)
-    - Communication can be encrypted using ECC (?)
-- The pairing pin is **not** brute-forceable (SR4)
-    - There is a timeout on pairs permitted; some sort of reflash protection is needed as well
+    - Communication will be encrypted/signed using ECC
+- Unpaired fobs should not be able to unlock the car, even with the pairing pin.
+    - There will not be any correlation between verifying a pairing pin and the car's unlocking mechanism.
 - Features are not forgeable (SR5)
     - Features are **signed** by the manufacturer
 - Features packaged for one car should not be enableable on another (SR6)
-    - Signing of features will include the car it was intented for.
+    - Features will be futher signed with the car's public key.
 
 ---
 
@@ -47,13 +47,13 @@ Messages are packets sent over UART1 from one embedded device to another. While 
 ```c
 struct Message {
     uint8_t magic; //packet type
-    uint8_t nonce_c; //Randomly generated nonce by the sender (client) (check if 8 is fine for nonce)
-    uint8_t nonce_s; //Randomly generated nonce by the recipient (server) - 2 nonces prevent "replay conversation" attacks
+    uint64_t nonce_c; //Randomly generated nonce by the sender (client) (check if 8 is fine for nonce)
+    uint64_t nonce_s; //Randomly generated nonce by the recipient (server) - 2 nonces prevent "replay conversation" attacks
     uint8_t[64] payload; //type-specific payload, signed by the recipient's public key - ensures intented recipient is correct.
 }
 
 struct MessageSignature{
-    uint8_t[128] signature; //Message signed by the factory public? key. Ensures only factory devices in conversation
+    uint8_t[64] signature; //Message signed by the factory public? key. Ensures only factory devices in conversation
 }
 ```
 
@@ -64,7 +64,7 @@ Ways the message can get discarded (fail validation):
 - Invalid nonces
 - Payload cannot be decoded by the recipient's private key (wrong recipient)
 - MessageSignature does not match with the Message when decoded (not factory device)
-- Packets invalid (see commands section below)
+- Invalid packet magic? (tentative)
 - Hello packet not sent during a conversation initialization (Attacker sends a random challenge packet to try to get output)
 
 The following are valid packet types (magics):
@@ -72,7 +72,7 @@ The following are valid packet types (magics):
 key_exchange (0x59) | any <--> any
 unlock       (0x6A) | paired fob <--> car
 pair         (0x7B) | unpaired fob <--> paired fob
-feature      (0x3B) | factory <--> paired fob, paired fob <--> car
+feature      (0x8C) | factory <--> paired fob
 ```
 
 Messages are signed with either device public keys or factory public keys. If the signature does not match the contents, it will be discarded.
@@ -145,7 +145,7 @@ Unlock
 struct Unlock {
     uint8_t unlock_magic;
     uint8_t car_id; // Intended car
-    uint8_t[30] car_secret_proof; //???
+    uint8_t[30] car_secret_proof; //Not sure we need, tenatively added
 }
 
 ```
@@ -154,18 +154,20 @@ Pair
 ```c
 struct Pair {
     uint8_t pair_magic;
-    uint8_t[31] pin_proof; //???
+    uint8_t[31] pin_proof; //Not sure we need, tenatively added
 }
 ```
 
-Add_Feature
+Feature
 ```c
 struct Feature{
     uint8_t feature_magic;
-    uint8_t[15] feature_proof; //???
+    uint8_t[15] feature_proof; //Not sure we need, tenatively added
     uint8_t[16] feature; //The feature to be added
 }
 ```
+
+If the payload structs we have listed above do not meet our size requirements, they will be subject to change.
 
 ---
 
@@ -188,3 +190,5 @@ A six digit pin is easily brute-forcible. Normally, this could be prevented usin
 Our brute force detection system will automatically delay any conversation messages after 5 (an arbitrary number) attempts, increasing in time exponentially with more failed attempts.
 
 ---
+
+# Build Environment
