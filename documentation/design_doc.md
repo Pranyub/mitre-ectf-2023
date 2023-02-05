@@ -66,7 +66,7 @@ Ways the message can get discarded (fail validation):
 - Payload cannot be decoded by the recipient's private key (wrong recipient)
 - MessageSignature does not match with the Message when decoded (not factory device)
 - Invalid packet magic? (tentative)
-- Hello packet not sent during a conversation initialization (Attacker sends a random challenge packet to try to get output)
+- Key_ex packet not sent during a conversation initialization (Attacker sends a random challenge packet to try to get output)
 
 The following are valid packet types (magics):
 ```
@@ -106,7 +106,7 @@ struct key_ex {
 }
 ```
 
-**Only fobs can initialize a conversation (send a hello message).**
+**Only fobs can initialize a conversation (send a key_ex message).**
 
 Upon recieving a valid key_ex message, a conversation is initiated between the sender and recipient of the messages, comprised of a two way *Challenge* followed by an accept/reject message by the server.
 
@@ -196,18 +196,35 @@ Our brute force detection system will automatically delay any conversation messa
 
 We see no reason to modify this from a security standpoint; all secrets will be inacessible to attackers (see *Build Deployment*).
 
-# Build Tools
+---
+
+## Build Tools
 
 Because attackers have full access to build tools and can modify them at will, we shall assume they are compromised and therefore will not contribute to cryptography whatsoever.
 
-# Build Deployment
+---
+
+## Build Deployment
 
 Because our design relies on factory secrets for signature verification (and encryption), these values **cannot** be leaked to attackers in the build environment. Therefore, cryptographic secrets shall be dynamically generated in the secrets volume upon each build. Therefore, each device will have separate cryptographic keys that cannot be found in the build process.
+Entropy will also be added to devices at this stage of the build process, according to one of our scenarios listed above in the entropy section.
 
-# Build Car Fob Pair, Build Fob
+---
 
-Hardcoded entropy will be added to each device in this stage.
+## Build Car/Fob Pair
 
-# Run Unlock, Run Pair, Run Package Feature, Run Enable Feature
+Because our car/fob pair's unlocking design relies on the fob knowing the car's secret id, we will add the car's id into paired fob designs.
+Because we will be building these at the same time, we have decided that the Car/Fob pairs built at this stage will have the same public/private key pair. This should theoretically be inaccessible to potential attackers.
 
-Because attackers will have full access to each device, we are going to assume these are compromised and therefore will not contribute to security. 
+---
+
+## Build Unpaired Fob
+
+This will generate a fob without the car's secret key, to be added later during pairing.
+
+---
+
+## Run Unlock, Run Pair, Run Package Feature, Run Enable Feature
+
+Because attackers will have full access to each device, we are going to assume these are compromised and therefore will not contribute to security. See above for how we will try to secure these requirements.
+No keys/entropy/secrets will be added to the device.
