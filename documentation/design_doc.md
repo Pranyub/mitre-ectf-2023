@@ -192,3 +192,21 @@ Our brute force detection system will automatically delay any conversation messa
 ---
 
 # Build Environment
+
+We see no reason to modify this from a security standpoint; all secrets will be inacessible to attackers (see *Build Deployment*).
+
+# Build Tools
+
+Because attackers have full access to build tools and can modify them at will, we shall assume they are compromised and therefore will not contribute to cryptography whatsoever.
+
+# Build Deployment
+
+Because our design relies on factory secrets for signature verification (and encryption), these values **cannot** be leaked to attackers in the build environment. Therefore, cryptographic secrets shall be dynamically generated in the secrets volume upon each build. Therefore, each device will have separate cryptographic keys that cannot be found in the build process.
+
+# Build Car Fob Pair, Build Fob
+
+Hardcoded entropy will be added to each device in this stage.
+
+# Run Unlock, Run Pair, Run Package Feature, Run Enable Feature
+
+Because attackers will have full access to each device, we are going to assume these are compromised and therefore will not contribute to security. 
