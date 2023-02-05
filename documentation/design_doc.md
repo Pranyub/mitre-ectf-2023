@@ -58,6 +58,9 @@ struct MessageSignature{
 }
 ```
 
+The following is an amazing diagram of the message structure:
+<img src = ../assets/img/diagram.png width = 50%>
+
 The goal of the `Message` data structure is to prevent reply attacks and ensure the integrity of each message. 
 
 Ways the message can get discarded (fail validation):
