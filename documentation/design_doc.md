@@ -19,7 +19,7 @@ There are a few requirements within the system design that need to be met in ord
 - Replay attacks **must** be unachievable (SR2)
     - Two randomly generated nonces will be used in communications, preventing capturing one conversation and replaying it to another device.
 - Communication is meaningless to those without private keys (SR3)
-    - Communication will be encrypted/signed using ECC
+    - Communication will be signed (and/or encrypted?) using ECC
 - Unpaired fobs should not be able to unlock the car, even with the pairing pin.
     - There will not be any correlation between verifying a pairing pin and the car's unlocking mechanism.
 - Features are not forgeable (SR5)
@@ -81,7 +81,7 @@ Messages are signed with either device public keys or factory public keys. If th
 
 Nonce generation:
 
-We plan on having two nonces in our messages. This will prevent an attacker from capturing one conversation and replaying it later (as per SR3). Only `hello` packets can reset a nonce.
+We plan on having two nonces in our messages. This will prevent an attacker from capturing one conversation and replaying it later (as per SR3). Only `key_ex` packets can reset a nonce.
 When a client begins a conversation, they will only send one nonce, their own randomly generated number. The server will take that, save it, and send another with the nonce of the client and their nonce (see Message data structure). After that, the client saves the server Nonce and continues the conversation as usual.
 Devices will discard their nonce when either the messages get discarded or when the conversation ends.  
 
@@ -97,17 +97,17 @@ Before any conversation, it is necessary to exchange certificates to ensure mess
 
     coloring is hard - the first two messages are part of the key exchange; the following four are part of the conversation.
 
-Each conversation consists of a **client** and a **server**. The **client** always initiates the conversation with a `hello` message and the following `payload`:
+Each conversation consists of a **client** and a **server**. The **client** always initiates the conversation with a `key_ex` message and the following `payload`:
 
 ```c
-struct hello {
-    uint8_t[64] fob_entropy; //64 bytes of random data to be used in a handshake
+struct key_ex {
+    uint8_t[64] device_pub;
 }
 ```
 
 **Only fobs can initialize a conversation (send a hello message).**
 
-Upon recieving a valid hello message, a conversation is initiated between the sender and recipient of the messages, comprised of a two way *Challenge* followed by an accept/reject message by the server.
+Upon recieving a valid key_ex message, a conversation is initiated between the sender and recipient of the messages, comprised of a two way *Challenge* followed by an accept/reject message by the server.
 
 The next step is an `acknowledge` message:
 
