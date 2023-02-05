@@ -49,7 +49,8 @@ struct Message {
     uint8_t magic; //packet type
     uint64_t nonce_c; //Randomly generated nonce by the sender (client) (check if 8 is fine for nonce)
     uint64_t nonce_s; //Randomly generated nonce by the recipient (server) - 2 nonces prevent "replay conversation" attacks
-    uint8_t[64] payload; //type-specific payload, signed by the recipient's public key - ensures intented recipient is correct.
+    uint16_t size;
+    uint8_t[size] payload; //type-specific payload, signed by the recipient's public key - ensures intented recipient is correct.
 }
 
 struct MessageSignature{
