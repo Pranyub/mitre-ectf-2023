@@ -66,6 +66,7 @@ Ways the message can get discarded (fail validation):
 - Payload cannot be decoded by the recipient's private key (wrong recipient)
 - MessageSignature does not match with the Message when decoded (not factory device)
 - Invalid packet magic? (tentative)
+- Payload size does not match packet type size
 - Key_ex packet not sent during a conversation initialization (Attacker sends a random challenge packet to try to get output)
 
 The following are valid packet types (magics):
@@ -122,8 +123,8 @@ Upon verification that the response is legit, the client will send a request pac
 
 ```c
 struct exe {
-    uint8_t[32] resp; //f(chal)
-    uint8_t[32] command; //command specific data
+    uint8_t[64] resp; //f(chal)
+    uint8_t[size - 64] command; //command specific data
 }
 ```
 
@@ -146,7 +147,7 @@ Unlock
 struct Unlock {
     uint8_t unlock_magic;
     uint8_t car_id; // Intended car
-    uint8_t[30] car_secret_proof; //Not sure we need, tenatively added
+    uint8_t[64] car_secret_proof; //Not sure we need, tenatively added
 }
 
 ```
@@ -155,7 +156,7 @@ Pair
 ```c
 struct Pair {
     uint8_t pair_magic;
-    uint8_t[31] pin_proof; //Not sure we need, tenatively added
+    uint8_t[64] pin_proof; //Not sure we need, tenatively added
 }
 ```
 
@@ -163,8 +164,8 @@ Feature
 ```c
 struct Feature{
     uint8_t feature_magic;
-    uint8_t[15] feature_proof; //Not sure we need, tenatively added
-    uint8_t[16] feature; //The feature to be added
+    uint8_t[64] feature_proof; //Not sure we need, tenatively added
+    uint32_t[3] feature; //The feature to be added
 }
 ```
 
