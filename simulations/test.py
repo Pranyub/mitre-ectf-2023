@@ -16,21 +16,28 @@ def index():
 def addPaired():
     if request.method == 'POST':
         key = request.form['key']
-        if (not key in cars.keys() and not key in fobs.keys()):
-            cars[key], fobs[key] = factory.gen_car_fob(random.randint(1, 0xffff))
+        if (not 'c_'+key in cars.keys() and not 'f_'+key in fobs.keys()):
+            cars['c_'+key], fobs['f_'+key] = factory.gen_car_fob(random.randint(1, 0xffff))
     return redirect('/')
 @app.route('/debug/add_unpaired', methods=['POST'])
 def addUnpaired():
     if request.method == 'POST':
         print(request.form.keys())
-        key = request.form['key']
+        key = 'f_' + request.form['key']
         if (not key in cars.keys() and not key in fobs.keys()):
             fobs[key] = factory.gen_unpaired_fob()
     return redirect('/')
 
 @app.route('/debug/reset', methods=['POST'])
 def reset():
-    car_fobs = []
-    unpaired_fobs = []
+    cars = {}
+    fobs = {}
+
+@app.route('/link/<car>/<fob>')
+def link(car, fob):
+    c = cars.get(car)
+    f = fobs.get(fob)
+    pass
+
 if __name__ == '__main__':
     app.run(debug=True)

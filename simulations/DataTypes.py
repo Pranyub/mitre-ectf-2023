@@ -9,13 +9,14 @@ def byte_xor(ba1, ba2):
 
 
 class Message:
-    def __init__(self, magic=0, nonce_c=0, nonce_s=0, size=0, payload=[], sig=0):
+    def __init__(self, magic='0', nonce_c=0, nonce_s=0, size=0, payload=[], sig=0):
         self.magic = magic
         self.nonce_c = nonce_c
         self.nonce_s = nonce_s
         self.size = size
         self.payload = payload
         self.sig = sig
+        self.error = None # debug only
 
 
 # Turns out each device pretty much does the same thing, except for the stuff in the command, so abstraction ftw!!11!
@@ -100,18 +101,47 @@ class Device:
     
     def handle_resp(self, message: Message):
         if(message.size != 32 or len(message.payload) != 32):
-            return {'Error': 'Invlaid Payload Length'}
+            return {'error': 'Invlaid Payload Length'}
         h = SHA256.new(self.secret)
         h.update(self.pub)
 
          #maybe use AES instead of xor?
         return {'message': byte_xor(self.c_secret, byte_xor(h, self.secret))}
 
+    # reset variables
     def cleanup(self):
         self.client_pub = [0] * 64
         self.secret = self.rand(32) #not necessary
         self.client_nonce = 0
         self.self_nonce = int.from_bytes(self.rand(8), 'big') #maybe necessary?
+
+
+    def wrap(self, magic, payload):
+        message = Message()
+
+    # message handler
+    def on_message(self, message: Message):
+        if message.magic == 'key_exchange_a':
+            return self.wrap('key_exchange_b', self.handle_key_exchange(message))
+        
+        if message.nonce_c != self.client_nonce:
+            return self.wrap({'error': 'invalid nonce'})
+        
+        if message.magic == 'key_exchange_b':
+            return self.wrap('start', self.handle_start)
+        
+        elif message.magic == 'start':
+            return self.wrap('chall', self.handle_chall)
+
+        elif message.magic == 'chall':
+            return self.wrap(self.handle_resp)
+        
+        elif message.magic == 'cmd':
+            return self.wrap('cmd', self.handle_cmd)
+        
+        return self.wrap({'error': 'invalid magic'})
+
+
 
     # ===============================
 
