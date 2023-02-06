@@ -15,7 +15,7 @@ These security requirements **must** be met:
 
 There are a few requirements within the system design that need to be met in order to achieve all Security Requirements:
 - The car **must** be able to verify the paired fob's integrity (SR1)
-    - Fobs will sign messages with the car's private key when sending an unlock request.
+    - Fobs will encrypt unlock messages using the shared key (AES)
 - Replay attacks **must** be unachievable (SR2)
     - Two randomly generated nonces will be used in communications, preventing capturing one conversation and replaying it to another device.
 - Communication is meaningless to those without private keys (SR3)
@@ -37,6 +37,8 @@ There are two types of devices - cars and fobs. They all share common variables 
 - `signature`: factory signature of public key
 
 These are all generated in factory and are unique to each device (except for factory signature) - they *never* change.
+
+In addition, paired fobs and cars will both contain a `symmetric secret` used in the unlock process.
 
 ---
 
@@ -141,42 +143,51 @@ struct status {
 
 <img src=../assets/img/2023-02-03-14-44-16.png width=75%>
 <!--[![](https://mermaid.ink/img/pako:eNp1UclugzAQ_ZWRT66U_ACHVmFLoi6HkqpUpYdpmIAVsJExrVDIv9dsSnKoT37zlpnRnNhepcQclmmsctj5iQT7nriHGp6prjEjCAv1u89Rm7uRXX26SpkvWC7vu60UBt5Wr7sFBNJoVbUduPwdbfWgNJRjxGR0ewt4fNdWBKKGR2qX8cNEekPeB9Ud-DwSmUTTaIIfLEQ6a_yLJuCRUZavmm84UjsJ4qGDO4JgADGPSKbzMjdBL6qDkAdaKz3Vw9FyPVEvWv830HrQjxNtuKekEbKhW7IP2N502Vx32c6ALVhJukSR2nucejJhJqeSEubYb4r6mLBEnq0OG6OiVu6ZY3RDC9ZUKRryBdozlsw5YFHT-Q_nJ421?type=png)](https://mermaid.live/edit#pako:eNp1UclugzAQ_ZWRT66U_ACHVmFLoi6HkqpUpYdpmIAVsJExrVDIv9dsSnKoT37zlpnRnNhepcQclmmsctj5iQT7nriHGp6prjEjCAv1u89Rm7uRXX26SpkvWC7vu60UBt5Wr7sFBNJoVbUduPwdbfWgNJRjxGR0ewt4fNdWBKKGR2qX8cNEekPeB9Ud-DwSmUTTaIIfLEQ6a_yLJuCRUZavmm84UjsJ4qGDO4JgADGPSKbzMjdBL6qDkAdaKz3Vw9FyPVEvWv830HrQjxNtuKekEbKhW7IP2N502Vx32c6ALVhJukSR2nucejJhJqeSEubYb4r6mLBEnq0OG6OiVu6ZY3RDC9ZUKRryBdozlsw5YFHT-Q_nJ421) -->
+
 ---
 
-## Commands
+# Commands
 
-Unlock
+## Unlock
 ```c
 struct Unlock {
     uint8_t unlock_magic;
     uint8_t car_id; // Intended car
-    uint8_t[64] car_secret_proof; //Not sure we need, tenatively added
+    uint8_t[64] encrypted_unlock_msg; //if the car can decrypt this with its shared key, it will unlock
 }
 
 ```
+<img src=../assets/img/2023-02-05-16-51-30.png width=75%>
 
-Pair
+
+## Pair
 ```c
 struct Pair {
     uint8_t pair_magic;
-    uint8_t[64] pin_proof; //Not sure we need, tenatively added
+    uint8_t[6] pin; //no need for this to be hidden from an attacker
 }
 ```
+<img src=../assets/img/2023-02-05-16-56-42.png width=75%>
+<!-- [![](https://mermaid.ink/img/pako:eNpVkM9qwzAMxl9F6ORC-wI5DNq0ISu0DLKjL5qtNWaNnfnPWGn67nMSAqtO-vTTZ0u6o3KascCLp76F9720kONXVO4D3sh4aPg7sVW8mslWlM5GYxOvYLN5gZ0YuxY4lYZX-0NXowcoxcF7t9DdTE8UVcsBagrtAJU4WOVvfWQNJY3fKc_x2XF2MJkGOD49WIuGrYYTh0CXZcDj5KlnUf4X1SxwjR37jozOa99HJDG23LHEIqea_JdEaR-5j1J0zc0qLKJPvMbUa4q8N5Sv1WHxSdfAjz-Pn2DI?type=png)](https://mermaid.live/edit#pako:eNpVkM9qwzAMxl9F6ORC-wI5DNq0ISu0DLKjL5qtNWaNnfnPWGn67nMSAqtO-vTTZ0u6o3KascCLp76F9720kONXVO4D3sh4aPg7sVW8mslWlM5GYxOvYLN5gZ0YuxY4lYZX-0NXowcoxcF7t9DdTE8UVcsBagrtAJU4WOVvfWQNJY3fKc_x2XF2MJkGOD49WIuGrYYTh0CXZcDj5KlnUf4X1SxwjR37jozOa99HJDG23LHEIqea_JdEaR-5j1J0zc0qLKJPvMbUa4q8N5Sv1WHxSdfAjz-Pn2DI) -->
 
-Feature
+TODO: How is response going to be encrypted?
+
+## Feature
 ```c
-struct Feature{
+struct Feature {
     uint8_t feature_magic;
-    uint8_t[64] feature_proof; //Not sure we need, tenatively added
+    uint8_t[64] feature_proof; //signature
     uint32_t[3] feature; //The feature to be added
 }
 ```
+<!-- [![](https://mermaid.ink/img/pako:eNpVkc-OgjAQh19lMqea6AtwMFHAP4dNNsHdE5cJnVUCtFhas0R89y1WNtJTf_2-TGfaOxZaMkZ4NtRe4JTkCvz6FTEZ-FK1LirI-OpYFbwIbCNirWypHC9gtVrDVgRvws_D4ahuVJdygFikxmjzottAv0cG4x1HryQi4cL0rYVP6mtNci6_Sv3r6axiEqT06qjuppZPumI1wG7e2qTWHQ-wn1U5iIyVhA_uOjpPk8ZP_xBC-h7272EXAi6xYdNQKf1z3keUo71wwzlGfivJVDnm6uE9clZnvSowssbxEl0ryXJSkv-FBqMfPwk__gB1EnpT?type=png)](https://mermaid.live/edit#pako:eNpVkc-OgjAQh19lMqea6AtwMFHAP4dNNsHdE5cJnVUCtFhas0R89y1WNtJTf_2-TGfaOxZaMkZ4NtRe4JTkCvz6FTEZ-FK1LirI-OpYFbwIbCNirWypHC9gtVrDVgRvws_D4ahuVJdygFikxmjzottAv0cG4x1HryQi4cL0rYVP6mtNci6_Sv3r6axiEqT06qjuppZPumI1wG7e2qTWHQ-wn1U5iIyVhA_uOjpPk8ZP_xBC-h7272EXAi6xYdNQKf1z3keUo71wwzlGfivJVDnm6uE9clZnvSowssbxEl0ryXJSkv-FBqMfPwk__gB1EnpT) -->
+
 
 If the payload structs we have listed above do not meet our size requirements, they will be subject to change.
 
 ---
 
-## Concerns
+# Concerns
 
 ## Entropy
 
@@ -232,3 +243,12 @@ This will generate a fob without the car's secret key, to be added later during 
 
 Because attackers will have full access to each device, we are going to assume these are compromised and therefore will not contribute to security. See above for how we will try to secure these requirements.
 No keys/entropy/secrets will be added to the device.
+
+## Other
+
+For our cryptography library, we have decided to use [BearSSL](https://bearssl.org/), a lightweight, modular library intended for embedded applications.
+
+We have chosen this for its:
+- small package size
+- side-channel fortification
+- compatability with arm-v7 architecture

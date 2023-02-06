@@ -1,66 +1,36 @@
-import base64
-import json
-from Crypto.Hash import SHA256
-from Crypto.PublicKey import ECC
-from Crypto.Signature import DSS
+from DataTypes import *
+from flask import Flask, render_template, request, redirect
 
-class Factory:
-    def __init__(self):
-        self.priv = ECC.generate(curve='P-256')
-        self.pub = self.priv.public_key()
+app = Flask(__name__)
 
-    def generate_feature(self, feature, car):
-        export = {'feature': feature, 'car_id': car}
-        export = json.dumps(export).encode()
-        h = SHA256.new(export)
-        signer = DSS.new(self.priv, 'fips-186-3')
-        signature = signer.sign(h)
-        return json.dumps({'f': export, 's': signature})
+cars = {}
+fobs = {}
 
+factory = Factory()
 
-class Fob:
-    def __init__(self, signature, fob_key, car=None):
-        if car:
-            self.car_key = car.key
-            self.car_id = car.id
-            self._paired = True
-        else:
-            self.car_key = 0
-            self.car_id = 0
-            self._paired = False
+@app.route('/')
+def index():
+    return render_template('index.html', car=str(cars), fob=str(fobs)) 
 
-        self.signature = signature
-        self.fob_key = fob_key
-        self.features = []
+@app.route('/debug/add_paired', methods=['POST'])
+def addPaired():
+    if request.method == 'POST':
+        key = request.form['key']
+        if (not key in cars.keys() and not key in fobs.keys()):
+            cars[key], fobs[key] = factory.gen_car_fob(random.randint(1, 0xffff))
+    return redirect('/')
+@app.route('/debug/add_unpaired', methods=['POST'])
+def addUnpaired():
+    if request.method == 'POST':
+        print(request.form.keys())
+        key = request.form['key']
+        if (not key in cars.keys() and not key in fobs.keys()):
+            fobs[key] = factory.gen_unpaired_fob()
+    return redirect('/')
 
-    def verify_and_add(self, feature):
-        feature = json.loads(feature)
-
-        if feature.car_id != self.car_id:
-            return 'error: wrong car'
-
-        elif self.features.count(feature) > 0:
-            return 'error: feature already exists'
-
-        h = SHA256.new(feature.f)
-        verifier = DSS.new(self.signature, 'fips-186-3')
-        try:
-            verifier.verify(h, feature.s)
-        except:
-            return 'error: bad signature'
-        
-        self.features.append(feature)
-        return 'success: added feature'
-
-    def execute(self, cmd):
-        if cmd == 'unlock':
-            if self.car_key == 0:
-                return 'error: not paired'
-            
-        elif cmd == 'feature_add':
-            return self.verify_and_add(cmd.split(' ')[1])
-        
-        return 'error: invalid command'
-
-class Car:
-    car_key = []
+@app.route('/debug/reset', methods=['POST'])
+def reset():
+    car_fobs = []
+    unpaired_fobs = []
+if __name__ == '__main__':
+    app.run(debug=True)

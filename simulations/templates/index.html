@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Car Fob thingy</title>
+  </head>
+  <body>
+    cars: {{car}}
+    fobs: {{fob}}
+    <br>
+    <br>
+    <div>
+    Add Car Fob Pair
+    <form action="/debug/add_paired" method="post">
+      <input id="key" name="key" type="text">
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+  <br>
+    <br>
+    <div>
+    Add Unpaired Fob
+    <form action="/debug/add_unpaired" method="post">
+      <input id="key" name="key" type="text">
+      <button type="submit">Submit</button>
+    </form>
+    <br>
+    <br>
+    <form action="/debug/reset" method="post">
+      <button type="submit">Reset</button>
+    </form>
+  </div>
+  </body>
+</html>
