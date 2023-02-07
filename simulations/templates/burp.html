@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>CSS? Who needs it</title>
+  </head>
+  <body>
+   <textarea id="inp" style="height: 400px; width: 80%">
+   </textarea>
+   <div id="hint"></div>
+   <div>
+   <button id="a" onclick="console.log(`${names[3]} -> ${names[2]}`); send('/send/' + names[2], inp.value)">Send to first</button>
+   <button id="b" onclick="console.log(`${names[2]} -> ${names[3]}`); send('/send/' + names[3], inp.value)">Send to second</button>
+    </div>
+   <script>
+
+    let names = window.location.pathname.split('/');
+    a.innerText = "Send to " + names[2];
+    b.innerText = "Send to " + names[3];
+
+    let message = JSON.parse(('{{j | safe }}')); //sketch
+    inp.value = JSON.stringify(message, null, 2);
+    console.log(`${names[2]} -> ${names[3]}`);
+    console.log(message);
+    hint.innerText = 'Payload {' + hex_to_ascii(message.payload) + "}";
+    function send(url, msg) {
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: inp.value
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                console.log(data);
+                inp.value = JSON.stringify(data, null, 2); //dom clobbering is the least of my worries
+                hint.innerText = 'Payload {' + hex_to_ascii(data.payload) + "}";
+        });
+    }
+
+    function hex_to_ascii(str1) {
+        var hex  = str1.toString();
+        var str = '';
+        for (var n = 0; n < hex.length; n += 2) {
+            str += String.fromCharCode(parseInt(hex.substr(n, 2), 16));
+        }
+        return str;
+    }
+
+   </script>
+  </body>
+</html>

@@ -9,15 +9,33 @@ def byte_xor(ba1, ba2):
 
 
 class Message:
-    def __init__(self, magic='0', nonce_c=0, nonce_s=0, size=0, payload=[], sig=0):
+    def __init__(self, magic='0', nonce_c=b'\x00'*8, nonce_s=b'\x00'*8, size=0, payload=[], sig=0):
         self.magic = magic
         self.nonce_c = nonce_c
         self.nonce_s = nonce_s
         self.size = size
         self.payload = payload
         self.sig = sig
-        self.error = None # debug only
 
+    def jsonify(self):
+        return {
+            'magic': self.magic,
+            'nonce_c': self.nonce_c.hex(),
+            'nonce_s': self.nonce_s.hex(),
+            'size': self.size,
+            'payload': self.payload.hex(),
+            'sig': self.sig.hex()
+        }
+    
+    def unjsonify(jsond):
+        return Message(
+            jsond['magic'],
+            bytes.fromhex(jsond['nonce_c']),
+            bytes.fromhex(jsond['nonce_s']),
+            jsond['nonce_c'],
+            bytes.fromhex(jsond['payload']),
+            bytes.fromhex(jsond['sig'])
+        )
 
 # Turns out each device pretty much does the same thing, except for the stuff in the command, so abstraction ftw!!11!
 # Let me have this before the C rewrite lol
@@ -46,99 +64,117 @@ class Device:
         #==== Message Specific Stuff ====
 
         #public key of communicating device
-        self.client_pub = [0] * 64
+        self.client_pub = [b'\x00'] * 64
         
         #nonce of communicating device
-        self.client_nonce = 0
+        self.client_nonce = b'\x00' * 8
 
         #nonce of this device
-        self.self_nonce = 0
+        self.server_nonce = b'\x00' * 8
         #================================
         
         #init rand (for now just use builtin)
         # self.rand = random.seed()
     
     # It's pseudorandom, but im not sure thats gonna be an issue at all
-    def rand(num_bytes):
+    def rand(self, num_bytes):
         return random.randbytes(num_bytes)
 
     #==== Conversation Functions ====
 
     def handle_key_exchange(self, message: Message):
-        if message.size != 64 or len(message.payload) != 64:
-            return 'Error: Invalid Payload Length'
+        
+        #Python messes up payload lens
+        #if message.size != 64 or len(message.payload) != 64:
+        #    return {'error': 'Invalid Payload Length'}
         
         # Check if signature is valid
-        verifier = DSS.new(SHA256.new(self.factory_pub), 'fips-186-3')
+        verifier = DSS.new(self.factory_pub, 'fips-186-3')
         try:
-            verifier.verify(message.payload, message.sig)
+            verifier.verify(SHA256.new(message.payload), message.sig)
         except:
-            return 'Error: Bad Signature'
+            return {'error': 'Bad Signature'}
         
         # Set the active public key
         self.client_pub = message.payload
-
-        # Set nonces
-        self.client_nonce = message.nonce_c
-        self.self_nonce = int.from_bytes(self.rand(8), 'big')
         
         # Technically, this returns some magic but whatever
         return {'message': b'Success!'} #...although 'Success!' can be a magic ;)
 
     def handle_start(self, message: Message):
         self.secret = self.rand(32)
-        return self.secret
+        return {'message': self.secret}
     
     def handle_chall(self, message: Message):
-        if message.size != 32 or len(message.payload) != 32:
-            return {'Error': 'Invlaid Payload Length'}
+        #if message.size != 32 or len(message.payload) != 32:
+        #    return {'error': 'Invlaid Payload Length'}
         h = SHA256.new(message.payload)
         h.update(self.client_pub)
         self.secret = self.rand(32)
 
-       
-        return {'message': byte_xor(self.c_secret, byte_xor(h.digest(), self.secret))}
+        # I'll be honest i have no idea that this is for... just use aes or smth
+        return {'message': b'\x99' + byte_xor(self.c_secret, h.digest())}
     
     def handle_resp(self, message: Message):
-        if(message.size != 32 or len(message.payload) != 32):
-            return {'error': 'Invlaid Payload Length'}
+        #if(message.size != 32 or len(message.payload) != 32):
+        #    return {'error': 'Invlaid Payload Length'}
         h = SHA256.new(self.secret)
-        h.update(self.pub)
+        h.update(self.pub.export_key(format='raw'))
 
          #maybe use AES instead of xor?
-        return {'message': byte_xor(self.c_secret, byte_xor(h, self.secret))}
+        return {'message': byte_xor(self.c_secret, h.digest())}
 
     # reset variables
     def cleanup(self):
         self.client_pub = [0] * 64
         self.secret = self.rand(32) #not necessary
-        self.client_nonce = 0
-        self.self_nonce = int.from_bytes(self.rand(8), 'big') #maybe necessary?
+        self.client_nonce = self.rand(8)
+        self.server_nonce = self.rand(8) #maybe necessary?
 
 
-    def wrap(self, magic, payload):
-        message = Message()
+    def wrap(self, magic, payload: dict):
+        message = Message(magic=magic, nonce_s=self.server_nonce, nonce_c=self.client_nonce)
+        if 'error' in payload.keys():
+            message.payload = ('error: ' + payload['error']).encode()
+        else:
+            message.payload = payload['message']
+        message.size = len(message.payload)
+        h = SHA256.new(message.magic.encode())
+        h.update(message.nonce_c)
+        h.update(message.nonce_s)
+        print(message.payload)
+        if(type(message.payload) == str):
+            h.update(message.payload.encode())
+        else:
+            h.update(message.payload)
+        signer = DSS.new(self.priv, 'fips-186-3')
+        message.sig = signer.sign(h)
+        return message
 
     # message handler
     def on_message(self, message: Message):
         if message.magic == 'key_exchange_a':
+            self.server_nonce = self.rand(8)
+            self.client_nonce = message.nonce_c
             return self.wrap('key_exchange_b', self.handle_key_exchange(message))
         
-        if message.nonce_c != self.client_nonce:
-            return self.wrap({'error': 'invalid nonce'})
-        
-        if message.magic == 'key_exchange_b':
-            return self.wrap('start', self.handle_start)
+        elif message.magic == 'key_exchange_b':
+            self.server_nonce = message.nonce_s
+            return self.wrap('start', self.handle_start(message))
+
+        if message.nonce_s != self.server_nonce or message.nonce_c != self.client_nonce:
+            return self.wrap('err', {'error': 'invalid nonce'})
         
         elif message.magic == 'start':
-            return self.wrap('chall', self.handle_chall)
+            return self.wrap('chall', self.handle_chall(message))
 
         elif message.magic == 'chall':
-            return self.wrap(self.handle_resp)
+            return self.wrap('cmd', self.handle_resp(message))
         
         elif message.magic == 'cmd':
-            return self.wrap('cmd', self.handle_cmd)
-        
+            return self.wrap('fin', self.handle_cmd(message))
+        elif message.magic == 'fin':
+            self.cleanup()
         return self.wrap({'error': 'invalid magic'})
 
 
@@ -167,8 +203,10 @@ class Fob(Device):
         return 'success: added feature'
 
     def unlock(self):
-
-        pass
+        self.client_nonce = self.rand(8)
+        msg = self.wrap('key_exchange_a', {'message': self.pub.export_key(format='raw')})
+        msg.sig = self.sig
+        return msg
     
     def __repr__(self):
         return f"fob with id {self.c_id}"
@@ -176,6 +214,13 @@ class Fob(Device):
 class Car(Device):
     def __repr__(self):
         return f"car with id {self.c_id}"
+    
+    def handle_resp(self, message: Message):
+        if message.payload[:1] != b'\x99':
+            return {'error':'bad command'}
+        message.payload = message.payload[1:]
+
+    
     pass
 
 
@@ -204,6 +249,8 @@ class Factory:
         c_secret = random.randbytes(32)
 
         car = Car(c_priv, c_pub, c_id, c_secret, signer.sign(SHA256.new(c_pub.export_key(format='raw'))), self.pub)
+
+        signer = DSS.new(self.priv, 'fips-186-3')
         fob = Fob(f_priv, f_pub, c_id, c_secret, signer.sign(SHA256.new(f_pub.export_key(format='raw'))), self.pub)
 
         return (car, fob)

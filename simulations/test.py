@@ -1,4 +1,6 @@
 from DataTypes import *
+import json
+import base64
 from flask import Flask, render_template, request, redirect
 
 app = Flask(__name__)
@@ -32,12 +34,24 @@ def addUnpaired():
 def reset():
     cars = {}
     fobs = {}
+    return redirect('/')
 
-@app.route('/link/<car>/<fob>')
-def link(car, fob):
-    c = cars.get(car)
-    f = fobs.get(fob)
-    pass
+@app.route('/static/<car>/<fob>')
+def burp(car, fob):
+    b = json.dumps(fobs[fob].unlock().jsonify()).encode()
+    return render_template('burp.html', j=(b.decode()), url=f'/link/{car}/{fob}')
+
+@app.route('/send/<dest>', methods=['POST'])
+def send(dest):
+    out = ''
+    if dest[:2] == 'c_':
+        out = cars[dest]
+    else:
+        out = fobs[dest]
+    msg = request.json
+    out = json.dumps(out.on_message(Message.unjsonify(msg)).jsonify()).encode()
+
+    return out.decode()
 
 if __name__ == '__main__':
     app.run(debug=True)
