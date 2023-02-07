@@ -112,7 +112,7 @@ class Device:
         h.update(self.client_pub)
         self.secret = self.rand(32)
 
-        # I'll be honest i have no idea that this is for... just use aes or smth
+        # I'll be honest i have no idea what this is for... just use aes or smth
         return {'message': b'\x99' + byte_xor(self.c_secret, h.digest())}
     
     def handle_resp(self, message: Message):

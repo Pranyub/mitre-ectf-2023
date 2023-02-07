@@ -1,4 +1,4 @@
-# Example Car Firmware
+# Example Fob Firmware
 The firmware is split into a few files that may be of interest to you,
 although you are free to change any and all files in this directory as long as
 functional and build requirements are met:
