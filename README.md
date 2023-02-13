@@ -4,6 +4,15 @@ This repository contains an example reference system for MITRE's 2023 Embedded S
 does not meet MITRE standards for quality.  This code is being provided for educational 
 purposes to serve as a simple example that meets the minimum functional requirements for 
 the 2023 eCTF.  Use this code at your own risk!
+
+## Before Compiling:
+BearSSL needs to be installed. Run the following in the `/lib` directory
+
+`git clone https://www.bearssl.org/git/BearSSL`
+`cd BearSSL`
+`make CONF=samd20`
+
+
 ## Design Structure
 - `car` - source code for building car devices
 - `deployment` - source code for generating deployment-wide secrets
