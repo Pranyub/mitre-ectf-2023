@@ -18,7 +18,7 @@ DEBUG=1
 
 # additional base directories
 TIVA_ROOT=${ROOT}/lib/tivaware
-
+BEAR_ROOT=${ROOT}/lib/BearSSL
 # add additional directories to search for source files to VPATH
 VPATH=${ROOT}/src
 VPATH+=${TIVA_ROOT}
@@ -92,7 +92,7 @@ unpaired_fob: copy_artifacts
 # EXAMPLE_AES=foo
 ifdef EXAMPLE_AES
 # path to crypto library
-CRYPTOPATH=${ROOT}/lib/tiny-AES-c
+CRYPTOPATH=${ROOT}/lib/BearSSL
 
 # add path to crypto source files to source path
 VPATH+=${CRYPTOPATH}
@@ -134,10 +134,11 @@ ${COMPILER}:
 # for each source file that needs to be compiled besides the file that defines `main`
 
 ${COMPILER}/firmware.axf: ${COMPILER}/uart.o
-${COMPILER}/firmware.axf: ${COMPILER}/board_link.o
+#${COMPILER}/firmware.axf: ${COMPILER}/board_link.o
 ${COMPILER}/firmware.axf: ${COMPILER}/firmware.o
 ${COMPILER}/firmware.axf: ${COMPILER}/startup_${COMPILER}.o
 ${COMPILER}/firmware.axf: ${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a
+${COMPILER}/firmware.axf: ${BEAR_ROOT}/samd20/libbearssl.a
 
 copy_artifacts:
 	cp ${COMPILER}/firmware.bin ${BIN_PATH}
