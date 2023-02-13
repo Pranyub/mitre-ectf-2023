@@ -8,9 +8,11 @@ the 2023 eCTF.  Use this code at your own risk!
 ## Before Compiling:
 BearSSL needs to be installed. Run the following in the `/lib` directory
 
-```git clone https://www.bearssl.org/git/BearSSL
+```
+git clone https://www.bearssl.org/git/BearSSL
 cd BearSSL
-make CONF=samd20```
+make CONF=samd20
+```
 
 
 ## Design Structure
