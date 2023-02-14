@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "bearssl_rand.h": "c",
+        "stdbool.h": "c",
+        "gpio.h": "c",
+        "stddef.h": "c"
+    }
+}

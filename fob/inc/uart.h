@@ -1,9 +1,9 @@
 #ifndef UART_H
 #define UART_H
 
-#include "util.h"
 #include <stdint.h>
-#include <stdbool.h>
+#include <stddef.h>
+#include "util.h"
 
 #define DEVICE_UART ((uint32_t)UART1_BASE)
 #define HOST_UART ((uint32_t)UART0_BASE)
@@ -29,6 +29,20 @@
 //initialize UART
 void uart_init(void);
 
+//send a message packet through the UART interface. uart_init() must be called first
 void uart_send_message(const uint32_t PORT, Message* message);
+
+//send raw packet through UART interface. uart_init() must be called first
+void uart_send_raw(const uint32_t PORT, uint8_t* message, uint16_t size);
+
+//initialize EEPROM
+void eeprom_init(void);
+
+//write message to an address in the eeprom
+void eeprom_read(uint8_t* msg, size_t len, uint8_t* address);
+
+//read a value from eeprom
+void eeprom_write(uint8_t* msg, size_t len, uint8_t* address);
+
 
 #endif
