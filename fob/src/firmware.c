@@ -1,6 +1,8 @@
-#include "uart.h"
+#include <stdbool.h>
 #include "inc/hw_memmap.h"
+#include "uart.h"
 #include "util.h"
+
 
 int main(void) {
     uart_init();

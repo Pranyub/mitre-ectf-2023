@@ -2,6 +2,7 @@
 #define UTIL_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #define MESSAGE_HEADER_SIZE 83
 
