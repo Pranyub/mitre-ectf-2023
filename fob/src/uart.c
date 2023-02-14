@@ -50,11 +50,28 @@ void uart_init(void) {
 }
 
 void uart_send_message(const uint32_t PORT, Message* message) {
-    for(int i = 0; i < MESSAGE_HEADER_SIZE; i++) {
-        UARTCharPut(PORT, (((char*)message)[i]));
-    }
+    /*
+    UARTCharPut(PORT, message->magic);
+    
+    UARTCharPut(PORT, message->size & 0xff);
+    UARTCharPut(PORT, (message->size >> 8) & 0xff);
 
+    UARTCharPut(PORT, (message->c_nonce) & 0xff);
+    UARTCharPut(PORT, (message->c_nonce >> 8) & 0xff);
+    UARTCharPut(PORT, (message->c_nonce >> 16) & 0xff);
+    UARTCharPut(PORT, (message->c_nonce >> 24) & 0xff);
+    UARTCharPut(PORT, (message->c_nonce >> 32) & 0xff);
+    UARTCharPut(PORT, (message->c_nonce >> 40) & 0xff);
+    UARTCharPut(PORT, (message->c_nonce >> 48) & 0xff);
+    UARTCharPut(PORT, (message->c_nonce >> 56) & 0xff);
+    */
     for(int i = 0; i < message->size; i++) {
-        UARTCharPut(PORT, (((char*)message->payload)[i]));
+        UARTCharPut(PORT, ((message->payload)[i]));
+    }
+}
+
+void uart_send_raw(const uint32_t PORT, uint8_t* message, uint16_t size) {
+    for(int i = 0; i < size; i++) {
+        UARTCharPut(PORT, message[i]);
     }
 }
