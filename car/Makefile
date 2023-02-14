@@ -1,5 +1,5 @@
 #  2023 eCTF
-#  Fob Makefile
+#  Car Makefile
 #  Kyle Scaplen
 #
 #  (c) 2023 The MITRE Corporation
@@ -19,6 +19,7 @@ DEBUG=1
 # additional base directories
 TIVA_ROOT=${ROOT}/lib/tivaware
 BEAR_ROOT=${ROOT}/lib/BearSSL
+
 # add additional directories to search for source files to VPATH
 VPATH=${ROOT}/src
 VPATH+=${TIVA_ROOT}
@@ -31,10 +32,8 @@ IPATH+=${TIVA_ROOT}
 include ${TIVA_ROOT}/makedefs
 
 
-
 ########################################################
-############### START fob customization ################
-
+############### START car customization ################
 
 # Optimizations
 CFLAGS+=-Os
@@ -47,42 +46,25 @@ __check_defined = \
 	$(if $(value $1),, \
 	  $(error Undefined $1))
 
-paired_fob_arg_check:
-	$(call check_defined, CAR_ID PAIR_PIN SECRETS_DIR BIN_PATH ELF_PATH EEPROM_PATH)
 
-paired_fob_gen_secret:
-	python3 gen_secret.py --car-id ${CAR_ID} --pair-pin ${PAIR_PIN} --secret-file ${SECRETS_DIR}/car_secrets.json --header-file inc/secrets.h --paired
+car_arg_check:
+	$(call check_defined, CAR_ID SECRETS_DIR BIN_PATH ELF_PATH EEPROM_PATH)
 
+gen_secret:
+	python3 gen_secret.py --car-id ${CAR_ID} --secret-file ${SECRETS_DIR}/car_secrets.json --header-file inc/secrets.h
 
-unpaired_fob_arg_check:
-	$(call check_defined, SECRETS_DIR BIN_PATH ELF_PATH EEPROM_PATH)
-
-unpaired_fob_gen_secret:
-	python3 gen_secret.py --header-file inc/secrets.h
-
-
-################ END fob customization ################
+################ END car customization ################
 #######################################################
 
 
-# this rule must come first in `paired_fob`
-paired_fob: ${COMPILER}
-paired_fob: paired_fob_arg_check
-paired_fob: paired_fob_gen_secret
+# this rule must come first in `car`
+car: ${COMPILER}
+car: car_arg_check
+car: gen_secret
 
-# this must be the last build rule of `paired_fob`
-paired_fob: ${COMPILER}/firmware.axf
-paired_fob: copy_artifacts
-
-
-# this rule must come first in `unpaired_fob`
-unpaired_fob: ${COMPILER}
-unpaired_fob: unpaired_fob_arg_check
-unpaired_fob: unpaired_fob_gen_secret
-
-# this must be the last build rule of `unpaired_fob`
-unpaired_fob: ${COMPILER}/firmware.axf
-unpaired_fob: copy_artifacts
+# these must be the last build rules of `car`
+car: ${COMPILER}/firmware.axf
+car: copy_artifacts
 
 
 ################ start crypto example ################
@@ -92,7 +74,7 @@ unpaired_fob: copy_artifacts
 # EXAMPLE_AES=foo
 ifdef EXAMPLE_AES
 # path to crypto library
-CRYPTOPATH=${ROOT}/lib/BearSSL
+CRYPTOPATH=${ROOT}/lib/tiny-AES-c
 
 # add path to crypto source files to source path
 VPATH+=${CRYPTOPATH}
