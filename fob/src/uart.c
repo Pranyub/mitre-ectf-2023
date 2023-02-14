@@ -1,11 +1,12 @@
 #include "uart.h"
+#include "util.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
 #include "driverlib/pin_map.h"
 #include "driverlib/uart.h"
 #include "inc/hw_memmap.h"
 
-void init_uart(void) {
+void uart_init(void) {
 
     //Enable Device <--> Device UART
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
@@ -45,5 +46,15 @@ void init_uart(void) {
     }
     while (UARTCharsAvail(HOST_UART)) {
         UARTCharGet(HOST_UART);
+    }
+}
+
+void uart_send_message(const uint32_t PORT, Message* message) {
+    for(int i = 0; i < MESSAGE_HEADER_SIZE; i++) {
+        UARTCharPut(PORT, (((char*)message)[i]));
+    }
+
+    for(int i = 0; i < message->size; i++) {
+        UARTCharPut(PORT, (((char*)message->payload)[i]));
     }
 }

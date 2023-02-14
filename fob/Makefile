@@ -17,8 +17,8 @@ ROOT=.
 DEBUG=1
 
 # additional base directories
-TIVA_ROOT=${ROOT}/../lib/tivaware
-BEAR_ROOT=${ROOT}/../lib/BearSSL
+TIVA_ROOT=${ROOT}/lib/tivaware
+BEAR_ROOT=${ROOT}/lib/BearSSL
 # add additional directories to search for source files to VPATH
 VPATH=${ROOT}/src
 VPATH+=${TIVA_ROOT}

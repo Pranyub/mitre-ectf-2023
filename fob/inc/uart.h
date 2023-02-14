@@ -1,3 +1,6 @@
+#ifndef UART_H
+#define UART_H
+
 #include "util.h"
 #include <stdint.h>
 #include <stdbool.h>
@@ -24,6 +27,8 @@
 #endif
 
 //initialize UART
-void init_uart(void);
+void uart_init(void);
 
+void uart_send_message(const uint32_t PORT, Message* message);
 
+#endif
