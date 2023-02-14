@@ -66,8 +66,8 @@ uint8_t* create_challenge(uint8_t* payload){
     for (int i = 0; payload[i] != '\0'; ++i) {
 
         char ch = payload[i];
-        uint lower = ch - 'a';
-        uint upper = ch - 'A';
+        uint8_t lower = ch - 'a';
+        uint8_t upper = ch - 'A';
 
         // lower case characters
         if (lower < 26 && lower >= 0) {
@@ -76,9 +76,6 @@ uint8_t* create_challenge(uint8_t* payload){
         // uppercase characters
         if (upper < 26 && upper >= 0) {
             ch = (ch - 'A' + 3) % 26 + 'A';
-        }
-        else {
-            printf("Invalid Message");
         }
         payload[i] = ch;
     }
@@ -90,8 +87,8 @@ uint8_t* solve_challenge(uint8_t* payload){
     for (int i = 0; payload[i] != '\0'; ++i) {
 
         char ch = payload[i];
-        uint lower = ch - 'a';
-        uint upper = ch - 'A';
+        uint8_t lower = ch - 'a';
+        uint8_t upper = ch - 'A';
 
         // lower case characters
         if (lower < 26 && lower >= 0) {
@@ -100,9 +97,6 @@ uint8_t* solve_challenge(uint8_t* payload){
         // uppercase characters
         if (upper < 26 && upper >= 0) {
             ch = (ch - 'A' - 3) % 26 + 'A';
-        }
-        else {
-            printf("Invalid Message");
         }
         payload[i] = ch;
     }
