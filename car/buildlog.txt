@@ -1,1 +1,66 @@
+<<<<<<< Updated upstream
 abcd
+=======
+INFO 2023-02-14 12:30:24,840 ectf:example:test1: Building car car1
+ERROR 2023-02-14 12:30:36,916 STDOUT:
+python3 gen_secret.py --car-id 1 --secret-file /secrets/car_secrets.json --header-file inc/secrets.h
+  CC    ./src/uart.c
+
+ERROR 2023-02-14 12:30:36,916 STDERR:
+./src/uart.c: In function 'uart_send_message':
+./src/uart.c:59:9: warning: implicit declaration of function 'UARTCHarPut'; did you mean 'UARTCharPut'? [-Wimplicit-function-declaration]
+   59 |         UARTCHarPut(PORT, (create_challenge((char*)message->payload)[i]));
+      |         ^~~~~~~~~~~
+      |         UARTCharPut
+./src/uart.c:59:45: warning: pointer targets in passing argument 1 of 'create_challenge' differ in signedness [-Wpointer-sign]
+   59 |         UARTCHarPut(PORT, (create_challenge((char*)message->payload)[i]));
+      |                                             ^~~~~~~~~~~~~~~~~~~~~~~
+      |                                             |
+      |                                             char *
+In file included from ./src/uart.c:1:
+./inc/uart.h:34:36: note: expected 'uint8_t *' {aka 'unsigned char *'} but argument is of type 'char *'
+   34 | uint8_t* create_challenge(uint8_t* entropy);
+      |                           ~~~~~~~~~^~~~~~~
+./src/uart.c:60:44: warning: pointer targets in passing argument 1 of 'solve_challenge' differ in signedness [-Wpointer-sign]
+   60 |         UARTCHarPut(PORT, (solve_challenge((char*)message->payload)[i]));
+      |                                            ^~~~~~~~~~~~~~~~~~~~~~~
+      |                                            |
+      |                                            char *
+In file included from ./src/uart.c:1:
+./inc/uart.h:36:35: note: expected 'uint8_t *' {aka 'unsigned char *'} but argument is of type 'char *'
+   36 | uint8_t* solve_challenge(uint8_t* entropy);
+      |                          ~~~~~~~~~^~~~~~~
+./src/uart.c: In function 'create_challenge':
+./src/uart.c:69:9: error: unknown type name 'uint'; did you mean 'int'?
+   69 |         uint lower = ch - 'a';
+      |         ^~~~
+      |         int
+./src/uart.c:70:9: error: unknown type name 'uint'; did you mean 'int'?
+   70 |         uint upper = ch - 'A';
+      |         ^~~~
+      |         int
+./src/uart.c:81:13: warning: implicit declaration of function 'printf' [-Wimplicit-function-declaration]
+   81 |             printf("Invalid Message");
+      |             ^~~~~~
+./src/uart.c:81:13: warning: incompatible implicit declaration of built-in function 'printf'
+./src/uart.c:8:1: note: include '<stdio.h>' or provide a declaration of 'printf'
+    7 | #include "inc/hw_memmap.h"
+  +++ |+#include <stdio.h>
+    8 | 
+./src/uart.c: In function 'solve_challenge':
+./src/uart.c:93:9: error: unknown type name 'uint'; did you mean 'int'?
+   93 |         uint lower = ch - 'a';
+      |         ^~~~
+      |         int
+./src/uart.c:94:9: error: unknown type name 'uint'; did you mean 'int'?
+   94 |         uint upper = ch - 'A';
+      |         ^~~~
+      |         int
+./src/uart.c:105:13: warning: incompatible implicit declaration of built-in function 'printf'
+  105 |             printf("Invalid Message");
+      |             ^~~~~~
+./src/uart.c:105:13: note: include '<stdio.h>' or provide a declaration of 'printf'
+make: *** [lib/tivaware/makedefs:170: gcc/uart.o] Error 1
+
+Error: Tool build failed with return code 2
+>>>>>>> Stashed changes

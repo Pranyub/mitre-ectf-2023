@@ -2,9 +2,11 @@
 #include "inc/hw_memmap.h"
 #include "uart.h"
 #include "util.h"
+#include "authentication.h"
 
 
 int main(void) {
+    rand_init();
     uart_init();
     uint8_t* payload = "hello world!\n";
     uint8_t chall[32];
