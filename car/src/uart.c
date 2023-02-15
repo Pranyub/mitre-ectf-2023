@@ -55,9 +55,15 @@ void uart_send_message(const uint32_t PORT, Message* message) {
     }
 
     for(int i = 0; i < message->size; i++) {
-        UARTCharPut(PORT, (((char*)message->payload)[i]));
-        UARTCHarPut(PORT, (create_challenge((char*)message->payload)[i]));
-        UARTCHarPut(PORT, (solve_challenge((char*)message->payload)[i]));
+        //Deciphering magic (for now we have 1 and 2):
+        if(message->magic == 1){
+            UARTCharPut(PORT, (((char*)message->payload)[i]));
+            UARTCHarPut(PORT, (create_challenge((char*)message->payload)[i]));
+            UARTCHarPut(PORT, (solve_challenge((char*)message->payload)[i]));
+        }
+        else{
+            UARTCharPut(PORT, (((char*)message->payload)[i]));
+        }
     }
 }
 
