@@ -32,13 +32,20 @@ void init_random(void) {
 
     br_hmac_drbg_update(&ctx, hash_out, 32);
 
+    //override old source of persistent memory with new value
+    br_hmac_drbg_generate(&ctx_rand, seed, SEED_SIZE);
+    eeprom_write(seed, SEED_SIZE, EEPROM_RAND_ADDR);
 }
 
 void get_rand_bytes(uint8_t* out, size_t len) {
     uint8_t seed[SEED_SIZE];
     br_hmac_drbg_generate(&ctx, seed, SEED_SIZE);
 
+<<<<<<< Updated upstream
     eeprom_write(seed, SEED_SIZE, EEPROM_RAND_ADDR);
 
     br_hmac_drbg_generate(&ctx, out, len);
+=======
+    br_hmac_drbg_generate(&ctx_rand, out, len);
+>>>>>>> Stashed changes
 }
