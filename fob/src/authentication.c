@@ -10,8 +10,8 @@ void message_init(Message* out) {
     out->msg_magic = CAR_TARGET;
     if(!c_nonce)
         rand_get_bytes(&c_nonce, sizeof(c_nonce));
-    out->c_nonce = 0x1234abcdcafebabe;
-    out->s_nonce = 0xababababdeadbeef;
+    out->c_nonce = c_nonce;
+    out->s_nonce = s_nonce;
 }
 
 void message_add_payload(Message* out, void* payload, size_t size) {
