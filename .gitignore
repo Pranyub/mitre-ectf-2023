@@ -1,14 +1,6 @@
-<<<<<<< Updated upstream
-/lib/BearSSL/build/
-/lib/BearSSL/libbearssl.a
-/lib/BearSSL/brssl
-/lib/BearSSL/testcrypto
-/lib/BearSSL/testspeed
-/lib/BearSSL/testx509
-=======
 .vscode
 .DS_Store
 ._*
 commands
 fobout
->>>>>>> Stashed changes
+fob/lib/BearSSL
