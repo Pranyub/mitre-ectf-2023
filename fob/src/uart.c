@@ -23,7 +23,7 @@ void uart_init(void) {
 
     // Configure the UART for 115,200, 8-N-1 operation.
     UARTConfigSetExpClk(
-        DEVICE_UART, SysCtlClockGet(), 115200,
+        (uint32_t)UART1_BASE, SysCtlClockGet(), 115200,
         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
 
     /*********************************************************************/
@@ -39,39 +39,30 @@ void uart_init(void) {
 
     // Configure the UART for 115,200, 8-N-1 operation.
     UARTConfigSetExpClk(
-        HOST_UART, SysCtlClockGet(), 115200,
+        (uint32_t)UART0_BASE, SysCtlClockGet(), 115200,
         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
     
     /*********************************************************************/
 
     //Flush garbage data
-    while (UARTCharsAvail(DEVICE_UART)) {
-        UARTCharGet(DEVICE_UART);
+    while (UARTCharsAvail((uint32_t)UART1_BASE)) {
+        UARTCharGet((uint32_t)UART1_BASE);
     }
-    while (UARTCharsAvail(HOST_UART)) {
-        UARTCharGet(HOST_UART);
+    while (UARTCharsAvail((uint32_t)UART0_BASE)) {
+        UARTCharGet((uint32_t)UART0_BASE);
     }
 }
 
 void uart_send_message(const uint32_t PORT, Message* message) {
-    /*
-    UARTCharPut(PORT, message->magic);
-    
-    UARTCharPut(PORT, message->size & 0xff);
-    UARTCharPut(PORT, (message->size >> 8) & 0xff);
-
-    UARTCharPut(PORT, (message->c_nonce) & 0xff);
-    UARTCharPut(PORT, (message->c_nonce >> 8) & 0xff);
-    UARTCharPut(PORT, (message->c_nonce >> 16) & 0xff);
-    UARTCharPut(PORT, (message->c_nonce >> 24) & 0xff);
-    UARTCharPut(PORT, (message->c_nonce >> 32) & 0xff);
-    UARTCharPut(PORT, (message->c_nonce >> 40) & 0xff);
-    UARTCharPut(PORT, (message->c_nonce >> 48) & 0xff);
-    UARTCharPut(PORT, (message->c_nonce >> 56) & 0xff);
-    */
-    for(int i = 0; i < message->size; i++) {
-        UARTCharPut(PORT, ((message->payload)[i]));
+    for(uint8_t i = 0; i < sizeof(message) - sizeof(void*); i++) {
+        UARTCharPut(PORT, ((uint8_t*)message)[i]);
     }
+
+    //!!! what if message->payload_size is corrupted?
+    for(uint8_t i = 0; i < message->payload_size; i++) {
+        UARTCharPut(PORT, ((uint8_t*)message->payload)[i]);
+    }
+
 }
 
 void uart_send_raw(const uint32_t PORT, uint8_t* message, uint16_t size) {
@@ -90,10 +81,10 @@ void eeprom_init(void) {
 }
 
 //TODO: Add boundry checks to read/write methods
-void eeprom_read(uint8_t* msg, size_t len, uint8_t* address) {
+void eeprom_read(uint8_t* msg, size_t len, size_t address) {
     EEPROMRead(msg, address, len);
 }
 
-void eeprom_write(uint8_t* msg, size_t len, uint8_t* address) {
+void eeprom_write(uint8_t* msg, size_t len, size_t address) {
     EEPROMProgram(msg, address, len);
 }

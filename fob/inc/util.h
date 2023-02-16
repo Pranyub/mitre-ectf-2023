@@ -7,17 +7,21 @@
 #define MESSAGE_HEADER_SIZE 83
 
 //message magics
+#define CAR_TARGET 0x63
+#define P_FOB_TARGET 0x70
+#define U_FOB_TARGET 0x75
+//packet magics
 #define HELLO 0x48 //('H')
 #define CHALL 0x43 //('C')
 #define RESP  0x53 //('R')
 
 typedef struct {
     uint8_t msg_magic;
-    size_t size;
     uint64_t c_nonce;
     uint64_t s_nonce;
-    uint8_t* payload;
-    uint8_t hash[32];
+    uint8_t payload_hash[32];
+    size_t payload_size;
+    void* payload;
 } Message;
 
 typedef struct {
