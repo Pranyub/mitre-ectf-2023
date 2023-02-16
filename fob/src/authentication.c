@@ -10,8 +10,8 @@ void message_init(Message* out) {
     out->msg_magic = CAR_TARGET;
     if(!c_nonce)
         rand_get_bytes(&c_nonce, sizeof(c_nonce));
-    out->c_nonce = c_nonce;
-    out->s_nonce = s_nonce;
+    out->c_nonce = 0x1234abcdcafebabe;
+    out->s_nonce = 0xababababdeadbeef;
 }
 
 void message_add_payload(Message* out, void* payload, size_t size) {
@@ -25,7 +25,7 @@ void message_add_payload(Message* out, void* payload, size_t size) {
 
 void send_hello() {
     Message m;
-    init_message(&m);
+    message_init(&m);
     PacketHello p;
     p.pak_magic = HELLO;
     rand_get_bytes(challenge, 32);
@@ -33,6 +33,7 @@ void send_hello() {
     message_add_payload(&m, &p, sizeof(p));
     uart_send_message(HOST_UART, &m);
 }
+
 
 void solve_challenge(uint8_t* challenge, uint8_t* response) {
 

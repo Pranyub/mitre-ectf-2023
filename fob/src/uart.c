@@ -54,7 +54,7 @@ void uart_init(void) {
 }
 
 void uart_send_message(const uint32_t PORT, Message* message) {
-    for(uint8_t i = 0; i < sizeof(message) - sizeof(void*); i++) {
+    for(uint8_t i = 0; i < sizeof(Message) - sizeof(void*); i++) {
         UARTCharPut(PORT, ((uint8_t*)message)[i]);
     }
 
