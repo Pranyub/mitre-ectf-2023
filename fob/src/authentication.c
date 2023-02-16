@@ -20,10 +20,13 @@ void message_add_payload(Message* out, void* payload, size_t size) {
     br_sha256_context ctx_sha;
     br_sha256_init(&ctx_sha);
     br_sha256_update(&ctx_sha, payload, size);
+    uint8_t secret[] = PAIR_SECRET;
+    br_sha256_update(&ctx_sha, secret, sizeof(secret));
     br_sha256_out(&ctx_sha, &out->payload_hash);
 }
 
-void send_hello() {
+void send_hello(void) {
+    reset_state();
     Message m;
     message_init(&m);
     PacketHello p;
@@ -31,13 +34,31 @@ void send_hello() {
     rand_get_bytes(challenge, 32);
     memcpy(&p.chall, &challenge, 32); //is this side channel resistant?
     message_add_payload(&m, &p, sizeof(p));
+    next_packet_type = CHALL;
     uart_send_message(HOST_UART, &m);
 }
 
 
-void solve_challenge(uint8_t* challenge, uint8_t* response) {
-
+void send_solution(Message* challenge) {
+    Message m;
+    m.msg_magic = CAR_TARGET;
+    m.c_nonce = c_nonce;
+    m.s_nonce = s_nonce;
+    next_packet_type = END;
 }
+
+void handle_chall(Message* message) {
+    s_nonce = message->s_nonce;
+    send_solution(message);
+}
+
+void reset_state(void) {
+    c_nonce = 0;
+    s_nonce = 0;
+    next_packet_type = 0;
+    memset(challenge, 0, sizeof(challenge));
+}
+
 
 // Initialize BearSSL's pseudorandom number generator. This function must be called on boot.
 //TODO: Define source of entropy and give it a seed

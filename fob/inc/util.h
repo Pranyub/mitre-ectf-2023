@@ -13,7 +13,8 @@
 //packet magics
 #define HELLO 0x48 //('H')
 #define CHALL 0x43 //('C')
-#define RESP  0x53 //('R')
+#define SOLVE 0x53 //('R')
+#define END 0x45   //('E')
 
 typedef struct {
     uint8_t msg_magic;
