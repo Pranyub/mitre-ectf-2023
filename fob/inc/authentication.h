@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "bearssl_rand.h"
+#include "inc/bearssl_rand.h"
 #include "uart.h"
 
 //random should be stored on EEPROM so it may persist on reset

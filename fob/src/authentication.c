@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "authentication.h"
-#include "bearssl_rand.h"
+#include "inc/bearssl_rand.h"
 
 void issue_challenge(uint8_t* challenge) {
 
