@@ -5,7 +5,7 @@ commands
 fobout
 **/BearSSL
 fobout
-out/*/*.bin
-out/*/*.eeprom
-out/*/*.elf
-out/*/*.img
+**/*.bin
+**/*.eeprom
+**/*/*.elf
+**/*.img
