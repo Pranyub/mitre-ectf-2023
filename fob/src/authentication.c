@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include "inc/bearssl_rand.h"
 #include "inc/bearssl_hash.h"
@@ -7,12 +8,47 @@
 #include "uart.h"
 
 void message_init(Message* out) {
-    out->msg_magic = CAR_TARGET;
-    if(!c_nonce)
-        rand_get_bytes(&c_nonce, sizeof(c_nonce));
+    out->target = CAR_TARGET;
     out->c_nonce = c_nonce;
     out->s_nonce = s_nonce;
 }
+
+
+bool verify_message(Message* message) {
+
+    if(message->c_nonce != c_nonce) {
+        return false;
+    }
+
+    if(next_packet_type == CHALL) {
+        s_nonce = message->s_nonce;
+    }
+    else if (message->s_nonce != s_nonce)
+    {
+       return false;
+    }
+
+    if(message->payload_size < 1) {
+        return false;
+    }
+
+    if(next_packet_type != ((uint8_t*)message->payload)[0]) {
+        return false;
+    }
+    uint8_t hash[32];
+    br_sha256_context ctx_sha;
+    br_sha256_init(&ctx_sha);
+    br_sha256_update(&ctx_sha, message->payload, message->payload_size);
+    br_sha256_update(&ctx_sha, car_secret, sizeof(car_secret));
+    br_sha256_out(&ctx_sha, &hash);
+
+    if(!memcmp(hash, message->payload, sizeof(hash))) {
+        return false;
+    }
+
+
+}
+
 
 void message_add_payload(Message* out, void* payload, size_t size) {
     out->payload = payload;
@@ -20,19 +56,18 @@ void message_add_payload(Message* out, void* payload, size_t size) {
     br_sha256_context ctx_sha;
     br_sha256_init(&ctx_sha);
     br_sha256_update(&ctx_sha, payload, size);
-    uint8_t secret[] = PAIR_SECRET;
-    br_sha256_update(&ctx_sha, secret, sizeof(secret));
+    br_sha256_update(&ctx_sha, car_secret, sizeof(car_secret));
     br_sha256_out(&ctx_sha, &out->payload_hash);
 }
 
 void send_hello(void) {
     reset_state();
     Message m;
+    m.msg_magic = HELLO;
     message_init(&m);
     PacketHello p;
-    p.pak_magic = HELLO;
     rand_get_bytes(challenge, 32);
-    memcpy(&p.chall, &challenge, 32); //is this side channel resistant?
+    memcpy(&p.chall, &challenge, 32); //is this safe?
     message_add_payload(&m, &p, sizeof(p));
     next_packet_type = CHALL;
     uart_send_message(HOST_UART, &m);
@@ -53,9 +88,12 @@ void handle_chall(Message* message) {
 }
 
 void reset_state(void) {
-    c_nonce = 0;
+
+    rand_get_bytes(&c_nonce, sizeof(c_nonce));
+
     s_nonce = 0;
     next_packet_type = 0;
+
     memset(challenge, 0, sizeof(challenge));
 }
 

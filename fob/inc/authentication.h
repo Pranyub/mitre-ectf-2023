@@ -18,7 +18,7 @@
 //should be generated in 'secrets.h' and be unique for each fob
 #define FACTORY_ENTROPY 0xdf013746886b5dcc
 #define PAIR_SECRET {0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41}
-
+static uint8_t car_secret[] = PAIR_SECRET;
 //context for random number generator
 static br_hmac_drbg_context ctx_rand;
 static int is_random_set = 0;
@@ -31,13 +31,17 @@ static uint8_t next_packet_type = 0; //type of packet expected to be recieved
 
 void init_message(Message* out);
 
+//reset state of packet handler
+void reset_state(void);
+
+bool verify_message(Message* message);
+
 void send_hello(void);
 void send_solution(Message* challenge);
 
+
 void handle_chall(Message* message);
 
-//reset state of packet handler
-void reset_state(void);
 
 //random functions
 void rand_init(void);

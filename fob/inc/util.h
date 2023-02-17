@@ -17,6 +17,7 @@
 #define END 0x45   //('E')
 
 typedef struct {
+    uint8_t target;
     uint8_t msg_magic;
     uint64_t c_nonce;
     uint64_t s_nonce;
@@ -31,29 +32,27 @@ typedef struct {
 } Feature;
 
 typedef struct {
-    uint8_t comm_magic;
     Feature feature_a;
     Feature feature_b;
     Feature feature_c;
     uint8_t signature_multi[64];
 
-} Unlock;
+} CommandUnlock;
 
 typedef struct {
-    uint8_t pak_magic;
     uint8_t chall[32];
 } PacketHello;
 
 typedef struct {
-    uint8_t pak_magic;
     uint8_t chall[32];
 } PacketChallenge;
 
 typedef struct {
-    uint8_t pak_magic;
+    uint8_t command_magic;
+    size_t command_length;
     uint8_t response[32];
-    Unlock command;
-} PacketResponse;
+    uint8_t command[352];
+} PacketSolution;
 
 #endif
 
