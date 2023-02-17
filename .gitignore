@@ -4,4 +4,8 @@
 commands
 fobout
 **/BearSSL
-./fobout/*
+fobout
+out/*/*.bin
+out/*/*.eeprom
+out/*/*.elf
+out/*/*.img
