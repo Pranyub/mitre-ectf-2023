@@ -18,10 +18,11 @@
 //should be generated in 'secrets.h' and be unique for each fob
 #define FACTORY_ENTROPY 0xdf013746886b5dcc
 #define PAIR_SECRET {0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41}
-static uint8_t car_secret[] = PAIR_SECRET;
+static uint8_t car_secret[] = PAIR_SECRET; //is there a better way to do this?
+
 //context for random number generator
 static br_hmac_drbg_context ctx_rand;
-static int is_random_set = 0;
+static int is_random_set = 0; //bool to make sure random is set
 
 //variables to be used in client_response messaging
 static uint64_t c_nonce = 0;
