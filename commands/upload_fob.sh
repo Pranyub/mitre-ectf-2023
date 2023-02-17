@@ -1,0 +1,1 @@
+python3 -m ectf_tools device.load_hw --dev-in ./fobout --dev-name fob1 --dev-serial /dev/cu.usbmodem0E2349B71
