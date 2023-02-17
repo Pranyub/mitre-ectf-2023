@@ -3,4 +3,5 @@
 ._*
 commands
 fobout
-fob/lib/BearSSL
+**/BearSSL
+./fobout/*
