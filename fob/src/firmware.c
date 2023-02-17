@@ -6,14 +6,22 @@
 #include "authentication.h"
 
 int main(void) {
+    
+    //init rand and uart on boot
     rand_init();
     uart_init();
     
-    uint8_t rand[32];
     while(true) {
-        if(UARTCharsAvail(HOST_UART)) {
-            UARTCharGet(HOST_UART);
-            send_hello();
-        }
+        loop();
+    }
+}
+
+void loop() {
+    //right now just send a hello message upon recieving any data from the host
+    //in the future, send_hello() should be called when the unlock button is pressed
+    //TODO: implement button read logic
+    if(UARTCharsAvail(HOST_UART)) {
+        UARTCharGet(HOST_UART);
+        send_hello();
     }
 }

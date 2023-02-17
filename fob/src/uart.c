@@ -56,10 +56,13 @@ void uart_init(void) {
 
 // send a message packet over uart
 void uart_send_message(const uint32_t PORT, Message* message) {
+
+    //send everything except for the payload
     for(uint8_t i = 0; i < sizeof(Message) - sizeof(void*); i++) {
         UARTCharPut(PORT, ((uint8_t*)message)[i]);
     }
 
+    //send the payload
     //!!! what if message->payload_size is corrupted?
     for(uint8_t i = 0; i < message->payload_size; i++) {
         UARTCharPut(PORT, ((uint8_t*)message->payload)[i]);
@@ -84,11 +87,16 @@ void eeprom_init(void) {
     }
 }
 
+//Not sure if EEPROM is mapped as an iommu device - do some research and see if attacks that way are possible?
+
 //TODO: Add boundry checks to read/write methods
-void eeprom_read(uint8_t* msg, size_t len, size_t address) {
+//wrapper to read len bytes of a given address into a pointer (eeprom address starts at 0)
+void eeprom_read(void* msg, size_t len, size_t address) {
     EEPROMRead(msg, address, len);
 }
 
-void eeprom_write(uint8_t* msg, size_t len, size_t address) {
+
+//wrapper to write len bytes of a pointer to the given eeprom address (address starts at 0)
+void eeprom_write(void* msg, size_t len, size_t address) {
     EEPROMProgram(msg, address, len);
 }

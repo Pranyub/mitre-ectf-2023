@@ -7,6 +7,8 @@
 #include "authentication.h"
 #include "uart.h"
 
+
+//initialize message header values
 void message_init(Message* out) {
     out->target = CAR_TARGET;
     out->c_nonce = c_nonce;
@@ -14,16 +16,26 @@ void message_init(Message* out) {
 }
 
 
+/* verify that a message is valid
+
+Requirements:
+    - client nonce must match stored client nonce
+    - server nonce must match stored server nonce (unless no server nonce is present, in which case set it)
+    - the recieved packet type matches the next expected packet type
+    - the payload size is nonzero
+    - the payload size matches the expected size for a specific payload type (TODO; maybe implement elsewhere?)
+    - the hash of the payload matches the payload
+
+    - if any of these checks are failed, returns false. Otherwise return true.
+
+*/
 bool verify_message(Message* message) {
 
     if(message->c_nonce != c_nonce) {
         return false;
     }
-
-    if(next_packet_type == CHALL) {
-        s_nonce = message->s_nonce;
-    }
-    else if (message->s_nonce != s_nonce)
+    
+    if (message->msg_magic != CHALL && message->s_nonce != s_nonce)
     {
        return false;
     }
@@ -32,9 +44,10 @@ bool verify_message(Message* message) {
         return false;
     }
 
-    if(next_packet_type != ((uint8_t*)message->payload)[0]) {
+    if(next_packet_type != message->msg_magic) {
         return false;
     }
+
     uint8_t hash[32];
     br_sha256_context ctx_sha;
     br_sha256_init(&ctx_sha);
@@ -49,6 +62,8 @@ bool verify_message(Message* message) {
     return true;
 }
 
+// Adds a given message to a payload and computes the corresponding hash
+
 void message_add_payload(Message* out, void* payload, size_t size) {
     out->payload = payload;
     out->payload_size = size;
@@ -59,6 +74,13 @@ void message_add_payload(Message* out, void* payload, size_t size) {
     br_sha256_out(&ctx_sha, &out->payload_hash);
 }
 
+/* Creates and sends a hello message as part of the Conversation Protocol
+
+The hello message is the first stage of the Conversation Protocol.
+It consists of a 32 byte random value that will later be used in the challenge solution
+
+As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
+*/
 void send_hello(void) {
     reset_state();
     Message m;
@@ -73,17 +95,34 @@ void send_hello(void) {
 }
 
 
+/* Creates and sends a solution message as part of the Conversation Protocol (TODO)
+
+The solution is the third stage of the Conversation Protocol.
+It consists of:
+    - a 32 byte response defined as sha256(hello_random, challenge_random, car_secret)
+    - a Command payload; in this case an Unlock object
+As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
+*/
+
 void send_solution(Message* challenge) {
     Message m;
-    m.msg_magic = CAR_TARGET;
-    m.c_nonce = c_nonce;
-    m.s_nonce = s_nonce;
     next_packet_type = END;
 }
 
+/* Method to parse a challenge message as part of the Conversation Protocol
+
+This parses and stores values pertaining to the second stage of the Conversation Protocol.
+
+It stores the:
+   - new server nonce
+   - challenge bytes
+
+As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
+*/
 void handle_chall(Message* message) {
     s_nonce = message->s_nonce;
-    send_solution(message);
+    //TODO: store challenge bytes
+    //send_solution(message); //<-- should be elsewhere
 }
 
 void reset_state(void) {

@@ -1,3 +1,8 @@
+/*
+/* General Utilities for Device firmware
+/* honestly this name is a bit misleading; it should be called datatypes.h
+*/
+
 #ifndef UTIL_H
 #define UTIL_H
 
@@ -10,6 +15,7 @@
 #define CAR_TARGET 0x63
 #define P_FOB_TARGET 0x70
 #define U_FOB_TARGET 0x75
+
 //packet magics
 #define HELLO 0x48 //('H')
 #define CHALL 0x43 //('C')
