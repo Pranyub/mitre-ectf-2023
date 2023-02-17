@@ -42,13 +42,12 @@ bool verify_message(Message* message) {
     br_sha256_update(&ctx_sha, car_secret, sizeof(car_secret));
     br_sha256_out(&ctx_sha, &hash);
 
-    if(!memcmp(hash, message->payload, sizeof(hash))) {
+    if(!timingsafe_memcmp(hash, message->payload, sizeof(hash))) {
         return false;
     }
 
-
+    return true;
 }
-
 
 void message_add_payload(Message* out, void* payload, size_t size) {
     out->payload = payload;
