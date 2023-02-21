@@ -33,6 +33,12 @@ typedef struct {
 } Message;
 
 typedef struct {
+    size_t length;
+    uint8_t nonce[12];
+    void* ct;
+} EncryptedMessage;
+
+typedef struct {
     uint8_t data[32];
     uint8_t signature[64];
 } Feature;

@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "inc/bearssl_rand.h"
 #include "inc/bearssl_hash.h"
+#include "inc/bearssl_block.h"
 #include "inc/hw_memmap.h"
 #include "authentication.h"
 #include "uart.h"
@@ -74,6 +75,21 @@ void message_add_payload(Message* out, void* payload, size_t size) {
     br_sha256_out(&ctx_sha, &out->payload_hash);
 }
 
+// Takes a given message and encrypts it, adds length as well
+EncryptedMessage encrypt_message(Message* pt, size_t pt_len) {
+    EncryptedMessage c;
+    rand_get_bytes(&c.nonce, 12);
+
+    br_aes_ct_ctr_keys aes_ctx;
+    br_aes_ct_ctr_init(&aes_ctx, &key, 32);
+    uint32_t counter = br_aes_ct_ctr_run(&aes_ctx, &c.nonce, 0, pt, pt_len);
+
+    c.length = pt_len + 12;
+    c.ct = pt;
+    return c;
+}
+
+
 /* Creates and sends a hello message as part of the Conversation Protocol
 
 The hello message is the first stage of the Conversation Protocol.
@@ -91,7 +107,8 @@ void send_hello(void) {
     memcpy(&p.chall, &challenge, 32); //is this safe?
     message_add_payload(&m, &p, sizeof(p));
     next_packet_type = CHALL;
-    uart_send_message(HOST_UART, &m);
+    EncryptedMessage ct = encrypt_message(&m, sizeof(m));
+    uart_send_encrypted_message(HOST_UART, &ct);
 }
 
 

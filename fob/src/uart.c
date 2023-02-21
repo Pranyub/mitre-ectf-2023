@@ -70,6 +70,20 @@ void uart_send_message(const uint32_t PORT, Message* message) {
 
 }
 
+// send an encrypted message packet over uart
+void uart_send_encrypted_message(const uint32_t PORT, EncryptedMessage* message) {
+
+    // send the length header and nonce
+    for(uint8_t i = 0; i < sizeof(EncryptedMessage) - sizeof(void*) && i >= 0; i++) {
+        UARTCharPut(PORT, ((uint8_t*)message)[i]);
+    }
+
+    // send the ciphertext
+    for(uint8_t i = 0; i < message->length - 12 && i >= 0; i++) {
+        UARTCharPut(PORT, ((uint8_t*)message->ct)[i]);
+    }
+}
+
 //send raw bytes over uart
 void uart_send_raw(const uint32_t PORT, uint8_t* message, uint16_t size) {
     for(int i = 0; i < size; i++) {
