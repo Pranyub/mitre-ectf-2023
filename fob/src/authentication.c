@@ -10,7 +10,7 @@
 
 //initialize message header values
 void message_init(Message* out) {
-    out->target = CAR_TARGET;
+    out->target = target;
     out->c_nonce = c_nonce;
     out->s_nonce = s_nonce;
 }
@@ -27,7 +27,6 @@ Requirements:
     - the hash of the payload matches the payload
 
     - if any of these checks are failed, returns false. Otherwise return true.
-
 */
 bool verify_message(Message* message) {
 
@@ -74,6 +73,13 @@ void message_add_payload(Message* out, void* payload, size_t size) {
     br_sha256_out(&ctx_sha, &out->payload_hash);
 }
 
+
+void start_unlock_sequence(void) {
+    reset_state();
+    send_hello();
+}
+
+
 /* Creates and sends a hello message as part of the Conversation Protocol
 
 The hello message is the first stage of the Conversation Protocol.
@@ -82,7 +88,6 @@ It consists of a 32 byte random value that will later be used in the challenge s
 As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
 */
 void send_hello(void) {
-    reset_state();
     Message m;
     m.msg_magic = HELLO;
     message_init(&m);
@@ -104,7 +109,7 @@ It consists of:
 As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
 */
 
-void send_solution(Message* challenge) {
+void send_solution(void) {
     Message m;
     next_packet_type = END;
 }
@@ -125,14 +130,26 @@ void handle_chall(Message* message) {
     //send_solution(message); //<-- should be elsewhere
 }
 
+/* Resets the internal state of Converstaion
+
+Generates a new client nonce
+Resets:
+    - target type
+    - server nonce
+    - next packet type flag
+    - challenge data
+    - challenge resp data
+
+*/
 void reset_state(void) {
 
     rand_get_bytes(&c_nonce, sizeof(c_nonce));
-
+    target = 0;
     s_nonce = 0;
     next_packet_type = 0;
 
-    memset(challenge, 0, sizeof(challenge));
+    memset(challenge, 0, sizeof(challenge)); //safe?
+    memset(challenge_resp, 0, sizeof(challenge_resp)); //safe?
 }
 
 

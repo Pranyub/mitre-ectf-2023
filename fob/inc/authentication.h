@@ -15,32 +15,46 @@
 
 #define SEED_SIZE 32
 
-//should be generated in 'secrets.h' and be unique for each fob
+//should be generated in 'secrets.h' and be unique for each fob (make this uint8[32])
 #define FACTORY_ENTROPY 0xdf013746886b5dcc
 #define PAIR_SECRET {0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41}
-static uint8_t car_secret[] = PAIR_SECRET;
+static uint8_t car_secret[] = PAIR_SECRET; //is there a better way to do this?
+
 //context for random number generator
 static br_hmac_drbg_context ctx_rand;
-static int is_random_set = 0;
+static int is_random_set = 0; //bool to make sure random is set
 
-//variables to be used in client_response messaging
+/******************************************************************/
+//        variables to be used in conversation messaging
+/******************************************************************/
+static uint8_t target = 0;
 static uint64_t c_nonce = 0;
 static uint64_t s_nonce = 0;
-static uint8_t challenge[32];
-static uint8_t next_packet_type = 0; //type of packet expected to be recieved
 
+static uint8_t challenge[32];
+static uint8_t challenge_resp[32];
+static uint8_t next_packet_type = 0; //type of packet expected to be recieved
+/******************************************************************/
+
+/******************************************************************/
+
+
+//initializes a message struct with header values
 void init_message(Message* out);
 
-//reset state of packet handler
+//resest the state of packet handler
 void reset_state(void);
 
+//authenticates a message
 bool verify_message(Message* message);
 
-void send_hello(void);
-void send_solution(Message* challenge);
+void start_unlock_sequence(void);
 
+void send_hello(void);
+void send_solution(void);
 
 void handle_chall(Message* message);
+void handle_answer(Message* message);
 
 
 //random functions
