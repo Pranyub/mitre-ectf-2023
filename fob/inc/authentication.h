@@ -2,8 +2,10 @@
 #define AUTH_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include "inc/bearssl_rand.h"
+#include "inc/bearssl_hmac.h"
 #include "uart.h"
 #include "util.h"
 
@@ -22,6 +24,7 @@ static uint8_t car_secret[] = PAIR_SECRET; //is there a better way to do this?
 
 //context for random number generator
 static br_hmac_drbg_context ctx_rand;
+static br_hmac_key_context ctx_hmac_key;
 static int is_random_set = 0; //bool to make sure random is set
 
 /******************************************************************/
@@ -34,6 +37,11 @@ static uint64_t s_nonce = 0;
 static uint8_t challenge[32];
 static uint8_t challenge_resp[32];
 static uint8_t next_packet_type = 0; //type of packet expected to be recieved
+
+// All functions creating / modifying a message will use this variable;
+// It's probably more time-efficient than creating a new message struct every single time
+static Message current_msg;
+static bool is_msg_ready = false;
 /******************************************************************/
 
 /******************************************************************/
@@ -49,12 +57,14 @@ void reset_state(void);
 bool verify_message(Message* message);
 
 void start_unlock_sequence(void);
+void parse_inc_message(void);
+void send_next_message(void);
 
-void send_hello(void);
-void send_solution(void);
+void gen_hello(void);
+void gen_solution(void);
 
-void handle_chall(Message* message);
-void handle_answer(Message* message);
+bool handle_chall(Message* message);
+bool handle_answer(Message* message);
 
 
 //random functions

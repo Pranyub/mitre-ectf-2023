@@ -10,7 +10,8 @@ Provides a wrapper for uart and eeprom access. Maybe should be called communicat
 #include <stddef.h>
 #include "util.h"
 
-#define DEVICE_UART ((uint32_t)UART1_BASE)
+//#define DEVICE_UART ((uint32_t)UART1_BASE)
+#define DEVICE_UART ((uint32_t)UART0_BASE)
 #define HOST_UART ((uint32_t)UART0_BASE)
 
 /**********************************************
@@ -54,7 +55,9 @@ void uart_init(void);
 void uart_send_message(const uint32_t PORT, Message* message);
 
 //send raw packet through UART interface. uart_init() must be called first
-void uart_send_raw(const uint32_t PORT, uint8_t* message, uint16_t size);
+void uart_send_raw(const uint32_t PORT, void* message, uint16_t size);
+
+void uart_read_message(const uint32_t PORT, Message* message);
 
 //initialize EEPROM
 void eeprom_init(void);

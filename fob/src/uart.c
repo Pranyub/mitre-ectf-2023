@@ -57,26 +57,25 @@ void uart_init(void) {
 // send a message packet over uart
 void uart_send_message(const uint32_t PORT, Message* message) {
 
-    //send everything except for the payload
-    for(uint8_t i = 0; i < sizeof(Message) - sizeof(void*); i++) {
-        UARTCharPut(PORT, ((uint8_t*)message)[i]);
+    //send everything in message
+    for(uint8_t i = 0; i < sizeof(Message); i++) {
+        UARTCharPut(PORT, ((uint8_t*) message)[i]);
     }
-
-    //send the payload
-    //!!! what if message->payload_size is corrupted?
-    for(uint8_t i = 0; i < message->payload_size; i++) {
-        UARTCharPut(PORT, ((uint8_t*)message->payload)[i]);
-    }
-
 }
 
 //send raw bytes over uart
-void uart_send_raw(const uint32_t PORT, uint8_t* message, uint16_t size) {
+void uart_send_raw(const uint32_t PORT, void* message, uint16_t size) {
     for(int i = 0; i < size; i++) {
-        UARTCharPut(PORT, message[i]);
+        UARTCharPut(PORT, ((uint8_t*) message)[i]);
     }
 }
 
+void uart_read_message(const uint32_t PORT, Message* message) {
+    size_t i = 0;
+    while(UARTCharsAvail(PORT) && i < sizeof(Message)) {
+        ((uint8_t*) message)[i] = UARTCharGet(PORT);
+    }
+}
 //initialize eeprom
 void eeprom_init(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);

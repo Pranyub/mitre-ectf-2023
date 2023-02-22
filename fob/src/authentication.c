@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "inc/bearssl_rand.h"
 #include "inc/bearssl_hash.h"
+#include "inc/bearssl_hmac.h"
 #include "inc/hw_memmap.h"
 #include "authentication.h"
 #include "uart.h"
@@ -10,6 +11,7 @@
 
 //initialize message header values
 void message_init(Message* out) {
+    safe_memset(&current_msg, 0, sizeof(current_msg));
     out->target = target;
     out->c_nonce = c_nonce;
     out->s_nonce = s_nonce;
@@ -30,6 +32,10 @@ Requirements:
 */
 bool verify_message(Message* message) {
 
+    if(target != P_FOB_TARGET) {
+        return false;
+    }
+
     if(message->c_nonce != c_nonce) {
         return false;
     }
@@ -43,18 +49,17 @@ bool verify_message(Message* message) {
         return false;
     }
 
-    if(next_packet_type != message->msg_magic) {
+    if(next_packet_type != message->msg_magic || next_packet_type == 0) {
         return false;
     }
 
     uint8_t hash[32];
-    br_sha256_context ctx_sha;
-    br_sha256_init(&ctx_sha);
-    br_sha256_update(&ctx_sha, message->payload, message->payload_size);
-    br_sha256_update(&ctx_sha, car_secret, sizeof(car_secret));
-    br_sha256_out(&ctx_sha, &hash);
+    br_hmac_context ctx_hmac;
+    br_hmac_init(&ctx_hmac, &ctx_hmac_key, sizeof(hash));
+    br_hmac_update(&ctx_hmac, &message, sizeof(Message) - 512 + message->payload_size - sizeof(hash));
+    br_hmac_outCT(&ctx_hmac, NULL, 0, 0, 0, hash);
 
-    if(!timingsafe_memcmp(hash, message->payload, sizeof(hash))) {
+    if(!timingsafe_memcmp(hash, message->payload_hash, sizeof(hash))) {
         return false;
     }
 
@@ -64,19 +69,57 @@ bool verify_message(Message* message) {
 // Adds a given message to a payload and computes the corresponding hash
 
 void message_add_payload(Message* out, void* payload, size_t size) {
-    out->payload = payload;
+    if(size > PAYLOAD_BUF_SIZE) {
+        return;
+    }
+    memcpy(out->payload_buf, payload, size);
+
     out->payload_size = size;
-    br_sha256_context ctx_sha;
-    br_sha256_init(&ctx_sha);
-    br_sha256_update(&ctx_sha, payload, size);
-    br_sha256_update(&ctx_sha, car_secret, sizeof(car_secret));
-    br_sha256_out(&ctx_sha, &out->payload_hash);
+    br_hmac_context ctx_hmac;
+    br_hmac_init(&ctx_hmac, &ctx_hmac_key, sizeof(out->payload_hash));
+    br_hmac_update(&ctx_hmac, &out, sizeof(Message) - 512 + out->payload_size - sizeof(out->payload_hash));
+    br_hmac_outCT(&ctx_hmac, NULL, 0, 0, 0, out->payload_hash);
 }
 
 
 void start_unlock_sequence(void) {
     reset_state();
-    send_hello();
+    gen_hello();
+    uart_send_message(DEVICE_UART, &current_msg);
+    next_packet_type = CHALL;
+}
+
+
+void parse_inc_message(void) {
+    uart_read_message(DEVICE_UART, &current_msg);
+    if(!verify_message(&current_msg)) {
+        uart_send_raw(HOST_UART, "msg verification fail\n", 23);
+        reset_state();
+        return;
+    }
+
+    switch (current_msg.msg_magic)
+    {
+    case CHALL:
+        if(handle_chall(&current_msg)) {
+            gen_solution();
+        }
+        break;
+    case END:
+        handle_answer(&current_msg);
+        break;
+    default:
+        uart_send_raw(HOST_UART, "bad magic\n", 11);
+        reset_state();
+        break;
+    }
+}
+
+void send_next_message(void) {
+    if(is_msg_ready) {
+        is_msg_ready = false;
+        uart_send_message(DEVICE_UART, &current_msg);
+    }
 }
 
 
@@ -87,16 +130,16 @@ It consists of a 32 byte random value that will later be used in the challenge s
 
 As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
 */
-void send_hello(void) {
-    Message m;
-    m.msg_magic = HELLO;
-    message_init(&m);
+void gen_hello(void) {
+    safe_memset(&current_msg, 0, sizeof(Message));
+    message_init(&current_msg);
+    current_msg.msg_magic = HELLO;
     PacketHello p;
     rand_get_bytes(challenge, 32);
     memcpy(&p.chall, &challenge, 32); //is this safe?
-    message_add_payload(&m, &p, sizeof(p));
+    message_add_payload(&current_msg, &p, sizeof(p));
     next_packet_type = CHALL;
-    uart_send_message(HOST_UART, &m);
+    is_msg_ready = true;
 }
 
 
@@ -109,9 +152,25 @@ It consists of:
 As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
 */
 
-void send_solution(void) {
-    Message m;
+void gen_solution(void) {
+    safe_memset(&current_msg, 0, sizeof(Message));
+    message_init(&current_msg);
+    current_msg.msg_magic = SOLVE;
+    PacketSolution p;
+
+    br_sha256_context ctx_sha2;
+    br_sha256_init(&ctx_sha2);
+    br_sha256_update(&ctx_sha2, challenge, sizeof(challenge));
+    br_sha256_update(&ctx_sha2, challenge_resp, sizeof(challenge_resp));
+    br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
+    br_sha256_out(&ctx_sha2, p.response);
+
+    p.command_magic = UNLOCK_MGK;    
+
+    message_add_payload(&current_msg, &p, sizeof(p));
+
     next_packet_type = END;
+    is_msg_ready = true;
 }
 
 /* Method to parse a challenge message as part of the Conversation Protocol
@@ -124,10 +183,24 @@ It stores the:
 
 As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
 */
-void handle_chall(Message* message) {
-    s_nonce = message->s_nonce;
-    //TODO: store challenge bytes
-    //send_solution(message); //<-- should be elsewhere
+bool handle_chall(Message* message) {
+    if(message->payload_size != sizeof(PacketChallenge)) {
+        return false;
+    }
+
+    PacketChallenge* p = &(message->payload_buf);
+
+    memcpy(challenge_resp, p->chall, sizeof(challenge_resp));
+
+    return true;
+}
+
+bool handle_answer(Message* message) {
+    
+    uart_send_raw(HOST_UART, "recieved unlock!\n", 18);
+    uart_send_message(HOST_UART, message);
+    reset_state();
+    return true;
 }
 
 /* Resets the internal state of Converstaion
@@ -178,6 +251,11 @@ void rand_init(void) {
     br_hmac_drbg_generate(&ctx_rand, seed, SEED_SIZE);
     eeprom_write(seed, SEED_SIZE, EEPROM_RAND_ADDR);
     is_random_set = 1;
+
+
+    //also init hmac while we're at it
+    br_hmac_key_init(&ctx_hmac_key, &br_sha256_vtable, car_secret, sizeof(car_secret));
+
 }
 
 void rand_get_bytes(void* out, size_t len) {
