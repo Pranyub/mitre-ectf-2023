@@ -70,6 +70,12 @@ void uart_send_raw(const uint32_t PORT, uint8_t* message, uint16_t size) {
     }
 }
 
+void uart_read_message(const uint32_t PORT, Message* message) {
+    size_t i = 0;
+    while(UARTCharsAvail(PORT) && i < sizeof(Message)) {
+        ((uint8_t*) message)[i] = UARTCharGet(PORT);
+    }
+}
 //initialize eeprom
 void eeprom_init(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);

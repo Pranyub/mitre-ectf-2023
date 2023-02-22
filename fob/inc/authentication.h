@@ -57,8 +57,8 @@ void reset_state(void);
 bool verify_message(Message* message);
 
 void start_unlock_sequence(void);
-void parse_message(void);
-
+void parse_inc_message(void);
+void send_next_message(void);
 
 void gen_hello(void);
 void gen_solution(void);

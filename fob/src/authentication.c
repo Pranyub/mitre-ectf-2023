@@ -49,7 +49,7 @@ bool verify_message(Message* message) {
         return false;
     }
 
-    if(next_packet_type != message->msg_magic) {
+    if(next_packet_type != message->msg_magic || next_packet_type == 0) {
         return false;
     }
 
@@ -90,12 +90,31 @@ void start_unlock_sequence(void) {
 }
 
 
-void parse_message(void) {
+void parse_inc_message(void) {
+    uart_read_message(DEVICE_UART, &current_msg);
+    if(!verify_message(&current_msg)) {
+        uart_send_raw(HOST_UART, "msg verification fail\n", 23);
+        reset_state();
+        return;
+    }
 
+    switch (current_msg.msg_magic)
+    {
+    case CHALL:
+        handle_chall(&current_msg);
+        break;
+    case END:
+        handle_answer(&current_msg);
+        break;
+    default:
+        uart_send_raw(HOST_UART, "bad magic\n", 11);
+        reset_state();
+        break;
+    }
 }
 
-void send_response(void) {
-    
+void send_next_message(void) {
+
 }
 
 

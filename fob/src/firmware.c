@@ -40,7 +40,7 @@ int main(void) {
         /******************************************************************/
 
         if(UARTCharsAvail(DEVICE_UART)) {
-            parse_message();
+            parse_inc_message();
             send_response();
         }
         
