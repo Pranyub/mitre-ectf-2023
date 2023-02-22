@@ -34,6 +34,11 @@ static uint64_t s_nonce = 0;
 static uint8_t challenge[32];
 static uint8_t challenge_resp[32];
 static uint8_t next_packet_type = 0; //type of packet expected to be recieved
+
+// All functions creating / modifying a message will use this variable;
+// It's probably more time-efficient than creating a new message struct every single time
+static Message current_msg;
+
 /******************************************************************/
 
 /******************************************************************/
@@ -50,8 +55,8 @@ bool verify_message(Message* message);
 
 void start_unlock_sequence(void);
 
-void send_hello(void);
-void send_solution(void);
+Message gen_hello(void);
+void gen_solution(Message* out);
 
 void handle_chall(Message* message);
 void handle_answer(Message* message);

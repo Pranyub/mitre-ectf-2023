@@ -10,7 +10,7 @@
 #include <stddef.h>
 
 #define MESSAGE_HEADER_SIZE 83
-
+#define PAYLOAD_BUF_SIZE 512
 //message magics
 #define CAR_TARGET 0x63
 #define P_FOB_TARGET 0x70
@@ -29,7 +29,7 @@ typedef struct {
     uint64_t s_nonce;
     uint8_t payload_hash[32];
     size_t payload_size;
-    void* payload;
+    uint8_t payload_buf[PAYLOAD_BUF_SIZE];
 } Message;
 
 typedef struct {
@@ -59,6 +59,15 @@ typedef struct {
     uint8_t response[32];
     uint8_t command[352];
 } PacketSolution;
+
+//will compiler optimize this away?
+//also isnt this just memset lol
+#define safe_memset(address, value, size) \
+    for(size_t i = 0; i < size; i++) { \
+        if(i < size) {                 \
+            ((uint8_t*) address)[i] = value;        \
+        }                              \
+    }                                  
 
 #endif
 

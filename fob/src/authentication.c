@@ -10,6 +10,7 @@
 
 //initialize message header values
 void message_init(Message* out) {
+    safe_memset(&current_msg, 0, sizeof(current_msg));
     out->target = target;
     out->c_nonce = c_nonce;
     out->s_nonce = s_nonce;
@@ -50,11 +51,11 @@ bool verify_message(Message* message) {
     uint8_t hash[32];
     br_sha256_context ctx_sha;
     br_sha256_init(&ctx_sha);
-    br_sha256_update(&ctx_sha, message->payload, message->payload_size);
+    br_sha256_update(&ctx_sha, message->payload_buf, message->payload_size);
     br_sha256_update(&ctx_sha, car_secret, sizeof(car_secret));
     br_sha256_out(&ctx_sha, &hash);
 
-    if(!timingsafe_memcmp(hash, message->payload, sizeof(hash))) {
+    if(!timingsafe_memcmp(hash, message->payload_hash, sizeof(hash))) {
         return false;
     }
 
@@ -64,7 +65,11 @@ bool verify_message(Message* message) {
 // Adds a given message to a payload and computes the corresponding hash
 
 void message_add_payload(Message* out, void* payload, size_t size) {
-    out->payload = payload;
+    if(size > PAYLOAD_BUF_SIZE) {
+        return;
+    }
+    memcpy(out->payload_buf, payload, size);
+
     out->payload_size = size;
     br_sha256_context ctx_sha;
     br_sha256_init(&ctx_sha);
@@ -87,16 +92,15 @@ It consists of a 32 byte random value that will later be used in the challenge s
 
 As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
 */
-void send_hello(void) {
-    Message m;
-    m.msg_magic = HELLO;
-    message_init(&m);
+Message gen_hello(void) {
+    message_init(&current_msg);
+    current_msg.msg_magic = HELLO;
     PacketHello p;
     rand_get_bytes(challenge, 32);
     memcpy(&p.chall, &challenge, 32); //is this safe?
-    message_add_payload(&m, &p, sizeof(p));
+    message_add_payload(&current_msg, &p, sizeof(p));
     next_packet_type = CHALL;
-    uart_send_message(HOST_UART, &m);
+    uart_send_message(HOST_UART, &current_msg);
 }
 
 
