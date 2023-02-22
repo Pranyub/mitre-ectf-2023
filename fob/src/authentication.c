@@ -163,6 +163,8 @@ void gen_solution(void) {
     br_sha256_update(&ctx_sha2, challenge, sizeof(challenge));
     br_sha256_update(&ctx_sha2, challenge_resp, sizeof(challenge_resp));
     br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
+    br_sha256_update(&ctx_sha2, c_nonce, sizeof(c_nonce));
+     br_sha256_update(&ctx_sha2, s_nonce, sizeof(s_nonce));
     br_sha256_out(&ctx_sha2, p.response);
 
     p.command_magic = UNLOCK_MGK;    
