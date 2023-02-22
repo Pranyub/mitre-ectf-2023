@@ -127,7 +127,22 @@ As of now, the creation of the packet and the sending of the packet occur in one
 void handle_chall(Message* message) {
     s_nonce = message->s_nonce;
     //TODO: store challenge bytes
-    //send_solution(message); //<-- should be elsewhere
+    //send_solution(message); //<-- should be elsewhere     (send_solution(message) or send_solution(void))?
+}
+
+
+/* Method to parse a response to answering the challenge as part of the Conversation Protocol
+
+This parses and stores values pertaining to the third stage of the Conversation Protocol.
+
+It stores the:
+    - car secrets
+    we do not have the same worries about responding to the answer, as this is the final step of the Conversation Protocol. 
+
+*/
+void handle_answer(Message* message) {
+    //TODO: handle answer to the challenge from the challenge response response. 
+
 }
 
 /* Resets the internal state of Converstaion
@@ -141,6 +156,8 @@ Resets:
     - challenge resp data
 
 */
+
+
 void reset_state(void) {
 
     rand_get_bytes(&c_nonce, sizeof(c_nonce));
