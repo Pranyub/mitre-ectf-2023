@@ -41,7 +41,7 @@ static uint8_t next_packet_type = 0; //type of packet expected to be recieved
 // All functions creating / modifying a message will use this variable;
 // It's probably more time-efficient than creating a new message struct every single time
 static Message current_msg;
-
+static bool is_msg_ready = false;
 /******************************************************************/
 
 /******************************************************************/

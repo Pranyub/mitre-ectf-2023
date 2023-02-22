@@ -59,14 +59,14 @@ void uart_send_message(const uint32_t PORT, Message* message) {
 
     //send everything in message
     for(uint8_t i = 0; i < sizeof(Message); i++) {
-        UARTCharPut(PORT, ((uint8_t*)message)[i]);
+        UARTCharPut(PORT, ((uint8_t*) message)[i]);
     }
 }
 
 //send raw bytes over uart
-void uart_send_raw(const uint32_t PORT, uint8_t* message, uint16_t size) {
+void uart_send_raw(const uint32_t PORT, void* message, uint16_t size) {
     for(int i = 0; i < size; i++) {
-        UARTCharPut(PORT, message[i]);
+        UARTCharPut(PORT, ((uint8_t*) message)[i]);
     }
 }
 

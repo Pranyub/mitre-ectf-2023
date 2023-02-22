@@ -23,6 +23,8 @@
 #define SOLVE 0x53 //('R')
 #define END 0x45   //('E')
 
+#define UNLOCK_MGK 0x4F //('O')
+
 typedef struct {
     uint8_t target;
     uint8_t msg_magic;

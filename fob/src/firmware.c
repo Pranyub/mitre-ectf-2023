@@ -24,6 +24,9 @@ int main(void) {
 
     uint8_t prev_sw_state = GPIO_PIN_4;
     uint8_t curr_sw_state = GPIO_PIN_4;
+
+    volatile unsigned long long time_counter = 0;
+
     while(true) {
         
         // Poll for button press
@@ -41,8 +44,9 @@ int main(void) {
 
         if(UARTCharsAvail(DEVICE_UART)) {
             parse_inc_message();
-            send_response();
+            send_next_message();
         }
-        
+
+        time_counter++;
     }
 }

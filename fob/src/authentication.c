@@ -101,7 +101,9 @@ void parse_inc_message(void) {
     switch (current_msg.msg_magic)
     {
     case CHALL:
-        handle_chall(&current_msg);
+        if(handle_chall(&current_msg)) {
+            gen_solution();
+        }
         break;
     case END:
         handle_answer(&current_msg);
@@ -114,7 +116,10 @@ void parse_inc_message(void) {
 }
 
 void send_next_message(void) {
-
+    if(is_msg_ready) {
+        is_msg_ready = false;
+        uart_send_message(DEVICE_UART, &current_msg);
+    }
 }
 
 
@@ -126,6 +131,7 @@ It consists of a 32 byte random value that will later be used in the challenge s
 As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
 */
 void gen_hello(void) {
+    safe_memset(&current_msg, 0, sizeof(Message));
     message_init(&current_msg);
     current_msg.msg_magic = HELLO;
     PacketHello p;
@@ -133,6 +139,7 @@ void gen_hello(void) {
     memcpy(&p.chall, &challenge, 32); //is this safe?
     message_add_payload(&current_msg, &p, sizeof(p));
     next_packet_type = CHALL;
+    is_msg_ready = true;
 }
 
 
@@ -145,9 +152,25 @@ It consists of:
 As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
 */
 
-void send_solution(void) {
-    Message m;
+void gen_solution(void) {
+    safe_memset(&current_msg, 0, sizeof(Message));
+    message_init(&current_msg);
+    current_msg.msg_magic = SOLVE;
+    PacketSolution p;
+
+    br_sha256_context ctx_sha2;
+    br_sha256_init(&ctx_sha2);
+    br_sha256_update(&ctx_sha2, challenge, sizeof(challenge));
+    br_sha256_update(&ctx_sha2, challenge_resp, sizeof(challenge_resp));
+    br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
+    br_sha256_out(&ctx_sha2, p.response);
+
+    p.command_magic = UNLOCK_MGK;    
+
+    message_add_payload(&current_msg, &p, sizeof(p));
+
     next_packet_type = END;
+    is_msg_ready = true;
 }
 
 /* Method to parse a challenge message as part of the Conversation Protocol
@@ -169,6 +192,14 @@ bool handle_chall(Message* message) {
 
     memcpy(challenge_resp, p->chall, sizeof(challenge_resp));
 
+    return true;
+}
+
+bool handle_answer(Message* message) {
+    
+    uart_send_raw(HOST_UART, "recieved unlock!\n", 18);
+    uart_send_message(HOST_UART, message);
+    reset_state();
     return true;
 }
 
