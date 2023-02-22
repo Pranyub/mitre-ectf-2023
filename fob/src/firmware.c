@@ -33,11 +33,16 @@ int main(void) {
             delay(10000);
             if(GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_4) == curr_sw_state) {
                 // On button press
-                send_hello();
+                start_unlock_sequence();
             } 
         }
         prev_sw_state = curr_sw_state;
         /******************************************************************/
 
+        if(UARTCharsAvail(DEVICE_UART)) {
+            parse_message();
+            send_response();
+        }
+        
     }
 }

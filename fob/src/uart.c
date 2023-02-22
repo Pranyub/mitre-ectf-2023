@@ -57,17 +57,10 @@ void uart_init(void) {
 // send a message packet over uart
 void uart_send_message(const uint32_t PORT, Message* message) {
 
-    //send everything except for the payload
-    for(uint8_t i = 0; i < sizeof(Message) - sizeof(void*); i++) {
+    //send everything in message
+    for(uint8_t i = 0; i < sizeof(Message); i++) {
         UARTCharPut(PORT, ((uint8_t*)message)[i]);
     }
-
-    //send the payload
-    //!!! what if message->payload_size is corrupted?
-    for(uint8_t i = 0; i < message->payload_size; i++) {
-        UARTCharPut(PORT, ((uint8_t*)message->payload)[i]);
-    }
-
 }
 
 //send raw bytes over uart

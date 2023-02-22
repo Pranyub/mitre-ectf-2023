@@ -11,6 +11,7 @@
 
 #define MESSAGE_HEADER_SIZE 83
 #define PAYLOAD_BUF_SIZE 512
+
 //message magics
 #define CAR_TARGET 0x63
 #define P_FOB_TARGET 0x70
@@ -27,9 +28,9 @@ typedef struct {
     uint8_t msg_magic;
     uint64_t c_nonce;
     uint64_t s_nonce;
-    uint8_t payload_hash[32];
     size_t payload_size;
     uint8_t payload_buf[PAYLOAD_BUF_SIZE];
+    uint8_t payload_hash[32];
 } Message;
 
 typedef struct {

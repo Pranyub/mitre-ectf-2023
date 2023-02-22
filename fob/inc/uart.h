@@ -10,7 +10,8 @@ Provides a wrapper for uart and eeprom access. Maybe should be called communicat
 #include <stddef.h>
 #include "util.h"
 
-#define DEVICE_UART ((uint32_t)UART1_BASE)
+//#define DEVICE_UART ((uint32_t)UART1_BASE)
+#define DEVICE_UART ((uint32_t)UART0_BASE)
 #define HOST_UART ((uint32_t)UART0_BASE)
 
 /**********************************************
