@@ -12,7 +12,6 @@
 //initialize message header values
 void message_init(Message* out) {
     safe_memset(&current_msg, 0, sizeof(current_msg));
-    out->target = target;
     out->c_nonce = c_nonce;
     out->s_nonce = s_nonce;
 }
@@ -32,15 +31,15 @@ Requirements:
 */
 bool verify_message(Message* message) {
 
-    if(target != P_FOB_TARGET) {
+    if(message->target != DEVICE_TYPE) {
         return false;
     }
 
-    if(message->c_nonce != c_nonce) {
+    if(message->msg_magic != HELLO && message->c_nonce != c_nonce) {
         return false;
     }
     
-    if (message->msg_magic != CHALL && message->s_nonce != s_nonce)
+    if (message->msg_magic != HELLO && message->msg_magic != CHALL && message->s_nonce != s_nonce)
     {
        return false;
     }
@@ -92,7 +91,9 @@ void start_unlock_sequence(void) {
 
 void parse_inc_message(void) {
     uart_read_message(DEVICE_UART, &current_msg);
-    if(!verify_message(&current_msg)) {
+    //remove second verification if slow
+    if(!verify_message(&current_msg) && !verify_message(&current_msg)) {
+        safe_memset(&current_msg, 0, sizeof(Message));
         uart_send_raw(HOST_UART, "msg verification fail\n", 23);
         reset_state();
         return;
@@ -100,14 +101,28 @@ void parse_inc_message(void) {
 
     switch (current_msg.msg_magic)
     {
+    #ifdef FOB_TARGET
     case CHALL:
         if(handle_chall(&current_msg)) {
             gen_solution();
         }
         break;
     case END:
-        handle_answer(&current_msg);
+        handle_end(&current_msg);
         break;
+    #endif
+
+    #ifdef CAR_TARGET
+    case HELLO:
+        if(handle_hello(&current_msg)) {
+            gen_chall();
+        }
+        break;
+    case SOLVE:
+        if(handle_solution(&current_msg)) {
+            gen_end();
+        }
+    #endif
     default:
         uart_send_raw(HOST_UART, "bad magic\n", 11);
         reset_state();
@@ -134,6 +149,7 @@ void gen_hello(void) {
     safe_memset(&current_msg, 0, sizeof(Message));
     message_init(&current_msg);
     current_msg.msg_magic = HELLO;
+    current_msg.target = TO_CAR;
     PacketHello p;
     rand_get_bytes(challenge, 32);
     memcpy(&p.chall, &challenge, 32); //is this safe?
@@ -142,7 +158,7 @@ void gen_hello(void) {
     is_msg_ready = true;
 }
 
-
+#ifdef FOB_TARGET
 /* Creates and sends a solution message as part of the Conversation Protocol (TODO)
 
 The solution is the third stage of the Conversation Protocol.
@@ -156,6 +172,7 @@ void gen_solution(void) {
     safe_memset(&current_msg, 0, sizeof(Message));
     message_init(&current_msg);
     current_msg.msg_magic = SOLVE;
+    current_msg.target = TO_CAR;
     PacketSolution p;
 
     br_sha256_context ctx_sha2;
@@ -164,7 +181,7 @@ void gen_solution(void) {
     br_sha256_update(&ctx_sha2, challenge_resp, sizeof(challenge_resp));
     br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
     br_sha256_update(&ctx_sha2, c_nonce, sizeof(c_nonce));
-     br_sha256_update(&ctx_sha2, s_nonce, sizeof(s_nonce));
+    br_sha256_update(&ctx_sha2, s_nonce, sizeof(s_nonce));
     br_sha256_out(&ctx_sha2, p.response);
 
     p.command_magic = UNLOCK_MGK;    
@@ -197,13 +214,33 @@ bool handle_chall(Message* message) {
     return true;
 }
 
-bool handle_answer(Message* message) {
-    
+bool handle_end(Message* message) {
+
     uart_send_raw(HOST_UART, "recieved unlock!\n", 18);
     uart_send_message(HOST_UART, message);
     reset_state();
     return true;
 }
+#endif
+
+#ifdef CAR_TARGET
+
+bool handle_hello(Message* message) {
+
+    if(message->payload_size != sizeof(PacketHello)) {
+        return false;
+    }
+
+    c_nonce = message->c_nonce;
+    rand_get_bytes(&s_nonce, sizeof(s_nonce));
+
+    PacketHello* p = (PacketHello*) &message->payload_buf;
+
+    memcpy(challenge, p->chall, sizeof(challenge));
+}
+
+
+#endif
 
 /* Resets the internal state of Converstaion
 
@@ -219,8 +256,8 @@ Resets:
 void reset_state(void) {
 
     rand_get_bytes(&c_nonce, sizeof(c_nonce));
-    target = 0;
-    s_nonce = 0;
+    rand_get_bytes(&s_nonce, sizeof(s_nonce));
+
     next_packet_type = 0;
 
     memset(challenge, 0, sizeof(challenge)); //safe?

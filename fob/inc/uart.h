@@ -6,6 +6,7 @@ Provides a wrapper for uart and eeprom access. Maybe should be called communicat
 #ifndef UART_H
 #define UART_H
 
+
 #include <stdint.h>
 #include <stddef.h>
 #include "util.h"

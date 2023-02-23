@@ -1,6 +1,10 @@
 #ifndef AUTH_H
 #define AUTH_H
 
+#define FOB_TARGET
+#define CAR_TARGET
+#define DEVICE_TYPE TO_P_FOB
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -30,7 +34,6 @@ static int is_random_set = 0; //bool to make sure random is set
 /******************************************************************/
 //        variables to be used in conversation messaging
 /******************************************************************/
-static uint8_t target = 0;
 static uint64_t c_nonce = 0;
 static uint64_t s_nonce = 0;
 
@@ -56,16 +59,29 @@ void reset_state(void);
 //authenticates a message
 bool verify_message(Message* message);
 
-void start_unlock_sequence(void);
 void parse_inc_message(void);
 void send_next_message(void);
 
+#ifdef FOB_TARGET
+
+void start_unlock_sequence(void);
 void gen_hello(void);
 void gen_solution(void);
 
 bool handle_chall(Message* message);
-bool handle_answer(Message* message);
+bool handle_end(Message* message);
 
+#endif
+
+#ifdef CAR_TARGET
+
+void gen_chall(void);
+void gen_end(void);
+
+bool handle_hello(Message* message);
+bool handle_solution(Message* message);
+
+#endif
 
 //random functions
 void rand_init(void);
