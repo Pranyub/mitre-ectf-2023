@@ -69,6 +69,9 @@ void uart_init(void) {
  * @param message the message to send
  */
 void uart_send_message(const uint32_t PORT, Message* message) {
+    for(size_t i = 0; i < 4; i++) {
+        UARTCharPut(PORT, uart_magic[i]);
+    }
 
     //send everything in message
     for(size_t i = 0; i < sizeof(Message); i++) {
@@ -89,11 +92,13 @@ void uart_send_raw(const uint32_t PORT, void* message, uint16_t size) {
     }
 }
 
+
+//Possible error: apparently uart buffer size is only 16 bytes
 /**
  * @brief Attempts to read a message struct into a given buffer.
  * 
  * [NOTE]: This function offers no integrity verification!!! Corruption is definitely possible.
- * In the future, the UART buffer should be periodically flushed until a magic is found.
+ * In the future, the UART buffer should be periodically flushed until a magic is found (resolved?)
  * 
  * @param PORT the UART Port to use
  * @param message the buffer to write to
@@ -103,8 +108,25 @@ void uart_send_raw(const uint32_t PORT, void* message, uint16_t size) {
 bool uart_read_message(const uint32_t PORT, Message* message) {
     size_t i = 0;
     size_t timeout = 0;
-    
+    bool magic_found = false;
+
     #define TIMEOUT_THRESHOLD sizeof(Message) * 1000
+
+
+    //go through uart buffer until you find the magic header "0ops"
+    while(UARTCharsAvail(PORT)) {
+        for(uint8_t j = 0; j < 4; j++) {
+            if(uart_magic[i] != UARTCharGet(PORT)) {
+                continue;
+            }
+        }
+        magic_found = true;
+        break;
+    }
+
+    if(!magic_found) {
+        return false;
+    }
 
     while(UARTCharsAvail(PORT) && i < sizeof(Message)) {
 
