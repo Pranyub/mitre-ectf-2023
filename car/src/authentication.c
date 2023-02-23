@@ -101,7 +101,7 @@ void parse_inc_message(void) {
     {
     case HELLO:
         create_challenge();
-
+        send_next_message();
         break;
     case END:
         handle_answer(&current_msg);
