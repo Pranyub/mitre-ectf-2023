@@ -116,6 +116,9 @@ bool uart_read_message(const uint32_t PORT, Message* message) {
     //go through uart buffer until you find the magic header "0ops"
     while(UARTCharsAvail(PORT)) {
         for(uint8_t j = 0; j < 4; j++) {
+
+            if(!UARTCharsAvail(PORT))
+                return false;
             if(uart_magic[i] != UARTCharGet(PORT)) {
                 continue;
             }
