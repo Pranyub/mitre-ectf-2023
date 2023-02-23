@@ -1,10 +1,14 @@
-#include "uart.h"
-#include "util.h"
+#include <stdint.h>
+#include <stddef.h>
+
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
 #include "driverlib/pin_map.h"
 #include "driverlib/uart.h"
+#include "driverlib/eeprom.h"
 #include "inc/hw_memmap.h"
+#include "uart.h"
+#include "util.h"
 
 void uart_init(void) {
 
@@ -19,7 +23,7 @@ void uart_init(void) {
 
     // Configure the UART for 115,200, 8-N-1 operation.
     UARTConfigSetExpClk(
-        DEVICE_UART, SysCtlClockGet(), 115200,
+        (uint32_t)UART1_BASE, SysCtlClockGet(), 115200,
         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
 
     /*********************************************************************/
@@ -35,77 +39,63 @@ void uart_init(void) {
 
     // Configure the UART for 115,200, 8-N-1 operation.
     UARTConfigSetExpClk(
-        HOST_UART, SysCtlClockGet(), 115200,
+        (uint32_t)UART0_BASE, SysCtlClockGet(), 115200,
         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
     
     /*********************************************************************/
 
     //Flush garbage data
-    while (UARTCharsAvail(DEVICE_UART)) {
-        UARTCharGet(DEVICE_UART);
+    while (UARTCharsAvail((uint32_t)UART1_BASE)) {
+        UARTCharGet((uint32_t)UART1_BASE);
     }
-    while (UARTCharsAvail(HOST_UART)) {
-        UARTCharGet(HOST_UART);
+    while (UARTCharsAvail((uint32_t)UART0_BASE)) {
+        UARTCharGet((uint32_t)UART0_BASE);
     }
 }
 
+
+// send a message packet over uart
 void uart_send_message(const uint32_t PORT, Message* message) {
-    for(int i = 0; i < MESSAGE_HEADER_SIZE; i++) {
-        UARTCharPut(PORT, (((char*)message)[i]));
-    }
 
-    for(int i = 0; i < message->size; i++) {
-        //Deciphering magic (for now we have 1 and 2):
-        if(message->magic == 1){
-            UARTCharPut(PORT, (((char*)message->payload)[i]));
-            UARTCHarPut(PORT, (create_challenge((char*)message->payload)[i]));
-            UARTCHarPut(PORT, (solve_challenge((char*)message->payload)[i]));
-        }
-        else{
-            UARTCharPut(PORT, (((char*)message->payload)[i]));
-        }
+    //send everything in message
+    for(uint8_t i = 0; i < sizeof(Message); i++) {
+        UARTCharPut(PORT, ((uint8_t*) message)[i]);
     }
 }
 
-//Using ceaser cipher for now:
-uint8_t* create_challenge(uint8_t* payload){
-    for (int i = 0; payload[i] != '\0'; ++i) {
-
-        char ch = payload[i];
-        uint8_t lower = ch - 'a';
-        uint8_t upper = ch - 'A';
-
-        // lower case characters
-        if (lower < 26 && lower >= 0) {
-            ch = (ch - 'a' + 3) % 26 + 'a';
-        }
-        // uppercase characters
-        if (upper < 26 && upper >= 0) {
-            ch = (ch - 'A' + 3) % 26 + 'A';
-        }
-        payload[i] = ch;
+//send raw bytes over uart
+void uart_send_raw(const uint32_t PORT, void* message, uint16_t size) {
+    for(int i = 0; i < size; i++) {
+        UARTCharPut(PORT, ((uint8_t*) message)[i]);
     }
-    return payload;
 }
 
-//Using ceaser cipher for now:
-uint8_t* solve_challenge(uint8_t* payload){
-    for (int i = 0; payload[i] != '\0'; ++i) {
-
-        char ch = payload[i];
-        uint8_t lower = ch - 'a';
-        uint8_t upper = ch - 'A';
-
-        // lower case characters
-        if (lower < 26 && lower >= 0) {
-            ch = (ch - 'a' - 3) % 26 + 'a';
-        }
-        // uppercase characters
-        if (upper < 26 && upper >= 0) {
-            ch = (ch - 'A' - 3) % 26 + 'A';
-        }
-        payload[i] = ch;
+void uart_read_message(const uint32_t PORT, Message* message) {
+    size_t i = 0;
+    while(UARTCharsAvail(PORT) && i < sizeof(Message)) {
+        ((uint8_t*) message)[i] = UARTCharGet(PORT);
     }
-    return payload;
+}
+//initialize eeprom
+void eeprom_init(void) {
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
+
+    //if eeprom initialization fails, reset
+    if(EEPROMInit() != EEPROM_INIT_OK) {
+        SysCtlReset();
+    }
 }
 
+//Not sure if EEPROM is mapped as an iommu device - do some research and see if attacks that way are possible?
+
+//TODO: Add boundry checks to read/write methods
+//wrapper to read len bytes of a given address into a pointer (eeprom address starts at 0)
+void eeprom_read(void* msg, size_t len, size_t address) {
+    EEPROMRead(msg, address, len);
+}
+
+
+//wrapper to write len bytes of a pointer to the given eeprom address (address starts at 0)
+void eeprom_write(void* msg, size_t len, size_t address) {
+    EEPROMProgram(msg, address, len);
+}

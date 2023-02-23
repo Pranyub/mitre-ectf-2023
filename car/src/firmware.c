@@ -1,21 +1,28 @@
-#include "uart.h"
+#include <stdbool.h>
+#include <stdint.h>
 #include "inc/hw_memmap.h"
+#include "driverlib/uart.h"
+#include "driverlib/gpio.h"
+#include "uart.h"
 #include "util.h"
+#include "authentication.h"
+
 
 int main(void) {
+    // Initialization of uart, eeprom, and random functions.
     uart_init();
-    uint8_t* payload = "hello world!\n";
-    Message m = {1, 13, 0, 0, payload};
+    rand_init();
+    eeprom_init();
+
+    //Current message
+    Message current_msg;
     while(true) {
-    for(int i=0; i<1000000; i++) {}
-        uart_send_message(HOST_UART, &m);
-        startCar(void);
+        //Wait until signal is recieved
+        if(UARTCharsAvail(DEVICE_UART)) {
+            //Do stuff.
+            uart_read_message();
+            send_next_message();
+        }
+
     }
 }
-
-void startCar(void){
-    uint8_t* payload = "Unlocking car!";
-    Message m = {2, 14, 0, 0 payload}
-    for(int i=0; i <1000000; i++){}
-    uart_send_message(HOST_UART, &m);
-}  
