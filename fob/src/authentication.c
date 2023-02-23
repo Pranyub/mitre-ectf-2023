@@ -67,17 +67,16 @@ bool verify_message(Message* message) {
 
 // Adds a given message to a payload and computes the corresponding hash
 
-void message_add_payload(Message* out, void* payload, size_t size) {
+void message_sign_payload(Message* message, size_t size) {
     if(size > PAYLOAD_BUF_SIZE) {
         return;
     }
-    memcpy(out->payload_buf, payload, size);
 
-    out->payload_size = size;
+    message->payload_size = size;
     br_hmac_context ctx_hmac;
-    br_hmac_init(&ctx_hmac, &ctx_hmac_key, sizeof(out->payload_hash));
-    br_hmac_update(&ctx_hmac, &out, sizeof(Message) - 512 + out->payload_size - sizeof(out->payload_hash));
-    br_hmac_outCT(&ctx_hmac, NULL, 0, 0, 0, out->payload_hash);
+    br_hmac_init(&ctx_hmac, &ctx_hmac_key, sizeof(message->payload_hash));
+    br_hmac_update(&ctx_hmac, &message, sizeof(Message) - PAYLOAD_BUF_SIZE + message->payload_size - sizeof(message->payload_hash));
+    br_hmac_outCT(&ctx_hmac, NULL, 0, 0, 0, message->payload_hash);
 }
 
 
@@ -138,6 +137,7 @@ void send_next_message(void) {
 }
 
 
+#ifdef FOB_TARGET
 /* Creates and sends a hello message as part of the Conversation Protocol
 
 The hello message is the first stage of the Conversation Protocol.
@@ -150,15 +150,14 @@ void gen_hello(void) {
     message_init(&current_msg);
     current_msg.msg_magic = HELLO;
     current_msg.target = TO_CAR;
-    PacketHello p;
-    rand_get_bytes(challenge, 32);
-    memcpy(&p.chall, &challenge, 32); //is this safe?
-    message_add_payload(&current_msg, &p, sizeof(p));
+    PacketHello* p = (PacketHello*) &current_msg.payload_buf;
+    rand_get_bytes(challenge, sizeof(challenge));
+    memcpy(&p->chall, &challenge, sizeof(challenge)); //is this safe?
+    message_sign_payload(&current_msg, sizeof(p));
     next_packet_type = CHALL;
     is_msg_ready = true;
 }
 
-#ifdef FOB_TARGET
 /* Creates and sends a solution message as part of the Conversation Protocol (TODO)
 
 The solution is the third stage of the Conversation Protocol.
@@ -173,8 +172,10 @@ void gen_solution(void) {
     message_init(&current_msg);
     current_msg.msg_magic = SOLVE;
     current_msg.target = TO_CAR;
-    PacketSolution p;
+    PacketSolution* p = (PacketSolution*) &current_msg.payload_buf;
 
+
+    // use hmac here instead?
     br_sha256_context ctx_sha2;
     br_sha256_init(&ctx_sha2);
     br_sha256_update(&ctx_sha2, challenge, sizeof(challenge));
@@ -182,11 +183,11 @@ void gen_solution(void) {
     br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
     br_sha256_update(&ctx_sha2, c_nonce, sizeof(c_nonce));
     br_sha256_update(&ctx_sha2, s_nonce, sizeof(s_nonce));
-    br_sha256_out(&ctx_sha2, p.response);
+    br_sha256_out(&ctx_sha2, p->response);
 
-    p.command_magic = UNLOCK_MGK;    
+    p->command_magic = UNLOCK_MGK;    
 
-    message_add_payload(&current_msg, &p, sizeof(p));
+    message_sign_payload(&current_msg, sizeof(p));
 
     next_packet_type = END;
     is_msg_ready = true;
@@ -237,9 +238,55 @@ bool handle_hello(Message* message) {
     PacketHello* p = (PacketHello*) &message->payload_buf;
 
     memcpy(challenge, p->chall, sizeof(challenge));
+
+    return true;
 }
 
+bool handle_solution(Message* message) {
+    if(message->payload_size != sizeof(PacketSolution)) {
+        return false;
+    }
+    PacketSolution* p = (PacketSolution*) &message->payload_buf;
+    
+    uint8_t auth_hash[32];
 
+    br_sha256_context ctx_sha2;
+    br_sha256_init(&ctx_sha2);
+    br_sha256_update(&ctx_sha2, challenge, sizeof(challenge));
+    br_sha256_update(&ctx_sha2, challenge_resp, sizeof(challenge_resp));
+    br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
+    br_sha256_update(&ctx_sha2, c_nonce, sizeof(c_nonce));
+    br_sha256_update(&ctx_sha2, s_nonce, sizeof(s_nonce));
+    br_sha256_out(&ctx_sha2, auth_hash);
+
+    return timingsafe_memcmp(auth_hash, p->response);
+}
+
+void gen_chall(void) {
+    safe_memset(&current_msg, 0, sizeof(Message));
+    message_init(&current_msg);
+    current_msg.msg_magic = CHALL;
+    current_msg.target = TO_P_FOB;
+
+    PacketChallenge* p = (PacketChallenge*) &current_msg.payload_buf;
+    rand_get_bytes(challenge, sizeof(challenge));
+    memcpy(challenge, p->chall, sizeof(challenge));
+
+    next_packet_type = SOLVE;
+    is_msg_ready = true;
+}
+
+void gen_end(void) {
+    safe_memset(&current_msg, 0, sizeof(Message));
+    message_init(&current_msg);
+    current_msg.msg_magic = END;
+    current_msg.target = TO_P_FOB;
+
+    memcpy(current_msg.payload_buf, "unlocked! feature 1: ...\nfeature 2: ...\nfeature3: ...\n", 54);
+
+    next_packet_type = HELLO;
+    is_msg_ready = true;
+}
 #endif
 
 /* Resets the internal state of Converstaion

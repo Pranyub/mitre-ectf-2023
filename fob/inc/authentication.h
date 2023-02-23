@@ -56,6 +56,8 @@ void init_message(Message* out);
 //resest the state of packet handler
 void reset_state(void);
 
+void message_sign_payload(Message* message, size_t size);
+
 //authenticates a message
 bool verify_message(Message* message);
 
