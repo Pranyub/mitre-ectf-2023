@@ -13,9 +13,9 @@
 #define PAYLOAD_BUF_SIZE 512
 
 //message magics
-#define TO_CAR 0x63
-#define TO_P_FOB 0x70
-#define TO_U_FOB 0x75
+#define TO_CAR 0x63   //('c')
+#define TO_P_FOB 0x70 //('p')
+#define TO_U_FOB 0x75 //('u')
 
 //packet magics
 #define HELLO 0x48 //('H')
