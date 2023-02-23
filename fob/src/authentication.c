@@ -110,11 +110,15 @@ void message_sign_payload(Message* message, size_t size) {
  * 
  * It then attempts to craft a response to the incoming packet
  * 
- * If the incoming packet is invalid, the internal state of the current conversation
+ * If the incoming packet is invalid or times out, the internal state of the current conversation
  * is reset.
  */
 void parse_inc_message(void) {
-    uart_read_message(DEVICE_UART, &current_msg);
+    if(!uart_read_message(DEVICE_UART, &current_msg)) {
+        reset_state();
+        return;
+    }
+
     //remove second verification if slow
     if(!verify_message(&current_msg) && !verify_message(&current_msg)) {
         safe_memset(&current_msg, 0, sizeof(Message));
@@ -185,39 +189,40 @@ void start_unlock_sequence(void) {
     next_packet_type = CHALL;
 }
 
-/* Creates and sends a hello message as part of the Conversation Protocol
-
-The hello message is the first stage of the Conversation Protocol.
-It consists of a 32 byte random value that will later be used in the challenge solution
-
-As of now, the creation of the packet and the sending of the packet occur in one function.
-Should this change?
-*/
+/**
+ * @brief Creates a hello message as part of the Conversation protocol
+ * 
+ * This is the first packet to be sent in a sequence (Paired Fob -> Car)
+ * 
+ * See util.h for more information about the Conversation protocol.
+ */
 void gen_hello(void) {
-    safe_memset(&current_msg, 0, sizeof(Message));
     init_message(&current_msg);
+
     current_msg.msg_magic = HELLO;
     current_msg.target = TO_CAR;
     PacketHello* p = (PacketHello*) &current_msg.payload_buf;
     rand_get_bytes(challenge, sizeof(challenge));
+    
     memcpy(&p->chall, &challenge, sizeof(challenge)); //is this safe?
     message_sign_payload(&current_msg, sizeof(p));
     next_packet_type = CHALL;
     is_msg_ready = true;
 }
 
-/* Creates and sends a solution message as part of the Conversation Protocol (TODO)
-
-The solution is the third stage of the Conversation Protocol.
-It consists of:
-    - a 32 byte response defined as sha256(hello_random, challenge_random, car_secret)
-    - a Command payload; in this case an Unlock object
-As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
-*/
-
+/**
+ * @brief Creates a solution message as part of the Conversation protocol
+ * 
+ * This is the third packet to be sent in a sequence (Paired Fob -> Car)
+ * 
+ * This method depends on data from a hello packet and a challenge packet to
+ * properly compute a valid response.
+ * 
+ * See util.h for more information about the Conversation protocol.
+ */
 void gen_solution(void) {
-    safe_memset(&current_msg, 0, sizeof(Message));
     init_message(&current_msg);
+
     current_msg.msg_magic = SOLVE;
     current_msg.target = TO_CAR;
     PacketSolution* p = (PacketSolution*) &current_msg.payload_buf;
@@ -240,17 +245,18 @@ void gen_solution(void) {
     next_packet_type = END;
     is_msg_ready = true;
 }
+/**
+ * @brief Parses a recieved challenge message as part of the Conversation protocol
+ * 
+ * This method stores the challenge data from a given challenge message
+ * 
+ * See util.h for more information about the Conversation protocol.
 
-/* Method to parse a challenge message as part of the Conversation Protocol
-
-This parses and stores values pertaining to the second stage of the Conversation Protocol.
-
-It stores the:
-   - new server nonce
-   - challenge bytes
-
-As of now, the creation of the packet and the sending of the packet occur in one function. Should this change?
-*/
+ * @param message the message to be handled
+ * 
+ * @return true if the packet is valid.
+ * @return false if the packet is invalid.
+ */
 bool handle_chall(Message* message) {
     if(message->payload_size != sizeof(PacketChallenge)) {
         return false;
@@ -263,9 +269,20 @@ bool handle_chall(Message* message) {
     return true;
 }
 
+/**
+ * @brief Parses a recieved end message as part of the Conversation protocol
+ * 
+ * As of right now, this method just forwards packet data to the host UART interface
+ * 
+ * See util.h for more information about the Conversation protocol.
+ * 
+ * @param message the message to be handled
+ * 
+ * @return true
+ */
 bool handle_end(Message* message) {
 
-    uart_send_raw(HOST_UART, "recieved unlock!\n", 18);
+    uart_send_raw(HOST_UART, "recieved end!\n", 14);
     uart_send_message(HOST_UART, message);
     reset_state();
     return true;
@@ -280,6 +297,18 @@ bool handle_end(Message* message) {
 
 #ifdef CAR_TARGET
 
+/**
+ * @brief Parses a recieved hello message as part of the Conversation protocol
+ * 
+ * This method stores the challenge data from a given challenge message
+ * 
+ * See util.h for more information about the Conversation protocol.
+ * 
+ * @param message the message to be handled
+ * 
+ * @return true if the packet is valid.
+ * @return false if the packet is invalid.
+ */
 bool handle_hello(Message* message) {
 
     if(message->payload_size != sizeof(PacketHello)) {
@@ -296,6 +325,19 @@ bool handle_hello(Message* message) {
     return true;
 }
 
+/**
+ * @brief Parses a recieved solution message as part of the Conversation protocol
+ * 
+ * This method verifies that the given solution to the previous challenges matches
+ * the self-computed soluton.
+ * 
+ * See util.h for more information about the Conversation protocol.
+ * 
+ * @param message the message to be handled
+ * 
+ * @return true if the packet's solution is valid.
+ * @return false if the packet is invalid or the solution is wrong.
+ */
 bool handle_solution(Message* message) {
     if(message->payload_size != sizeof(PacketSolution)) {
         return false;
@@ -316,9 +358,18 @@ bool handle_solution(Message* message) {
     return timingsafe_memcmp(auth_hash, p->response);
 }
 
+
+/**
+ * @brief Creates a challenge message as part of the Conversation protocol
+ * 
+ * This is the second packet to be sent in a sequence (Car -> Paired Fob)
+ * 
+ * See util.h for more information about the Conversation protocol.
+ */
 void gen_chall(void) {
-    safe_memset(&current_msg, 0, sizeof(Message));
+
     init_message(&current_msg);
+
     current_msg.msg_magic = CHALL;
     current_msg.target = TO_P_FOB;
 
@@ -330,9 +381,19 @@ void gen_chall(void) {
     is_msg_ready = true;
 }
 
+
+/**
+ * @brief Creates an end message as part of the Conversation protocol
+ * 
+ * This is the fourth and final packet to be sent in a sequence (Car -> Paired Fob).
+ * Currently, the only functionality of this packet is to send an unlock message (TODO)
+ * 
+ * See util.h for more information about the Conversation protocol.
+ */
 void gen_end(void) {
-    safe_memset(&current_msg, 0, sizeof(Message));
+
     init_message(&current_msg);
+
     current_msg.msg_magic = END;
     current_msg.target = TO_P_FOB;
 
@@ -343,23 +404,21 @@ void gen_end(void) {
 }
 #endif
 
-/* Resets the internal state of Converstaion
-
-Generates a new client nonce
-Resets:
-    - target type
-    - server nonce
-    - next packet type flag
-    - challenge data
-    - challenge resp data
-
-*/
+/**
+ * @brief Resets the internal state of the Conversation sequence.
+ * 
+ * Creates new nonces.
+ *
+ * The next expected packet type is set to HELLO (although this will only be used with the Car)
+ * 
+ * The stored challenge and challenge responses are reset.
+ */
 void reset_state(void) {
 
     rand_get_bytes(&c_nonce, sizeof(c_nonce));
     rand_get_bytes(&s_nonce, sizeof(s_nonce));
 
-    next_packet_type = 0;
+    next_packet_type = HELLO;
 
     memset(challenge, 0, sizeof(challenge)); //safe?
     memset(challenge_resp, 0, sizeof(challenge_resp)); //safe?
@@ -411,6 +470,13 @@ void rand_init(void) {
 
 }
 
+
+/**
+ * @brief gets random bytes from internal prng
+ * 
+ * @param out buffer to store random bytes
+ * @param len number of bytes to write
+ */
 void rand_get_bytes(void* out, size_t len) {
     br_hmac_drbg_generate(&ctx_rand, out, len);
 }

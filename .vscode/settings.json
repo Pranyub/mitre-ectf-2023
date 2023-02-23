@@ -4,6 +4,7 @@
         "stdbool.h": "c",
         "gpio.h": "c",
         "stddef.h": "c",
-        "uart.h": "c"
+        "uart.h": "c",
+        "pin_map.h": "c"
     }
 }

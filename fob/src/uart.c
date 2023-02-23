@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "driverlib/sysctl.h"
@@ -70,11 +71,22 @@ void uart_send_raw(const uint32_t PORT, void* message, uint16_t size) {
     }
 }
 
-void uart_read_message(const uint32_t PORT, Message* message) {
+bool uart_read_message(const uint32_t PORT, Message* message) {
     size_t i = 0;
+    size_t timeout = 0;
+    
+    #define TIMEOUT_THRESHOLD sizeof(Message) * 1000
+
     while(UARTCharsAvail(PORT) && i < sizeof(Message)) {
+
+        if(timeout > TIMEOUT_THRESHOLD) {
+            return false;
+        }
+        timeout++;
         ((uint8_t*) message)[i] = UARTCharGet(PORT);
     }
+    
+    return true;
 }
 //initialize eeprom
 void eeprom_init(void) {
