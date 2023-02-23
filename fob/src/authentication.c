@@ -10,7 +10,7 @@
 
 
 //initialize message header values
-void message_init(Message* out) {
+void init_message(Message* out) {
     safe_memset(&current_msg, 0, sizeof(current_msg));
     out->c_nonce = c_nonce;
     out->s_nonce = s_nonce;
@@ -147,7 +147,7 @@ As of now, the creation of the packet and the sending of the packet occur in one
 */
 void gen_hello(void) {
     safe_memset(&current_msg, 0, sizeof(Message));
-    message_init(&current_msg);
+    init_message(&current_msg);
     current_msg.msg_magic = HELLO;
     current_msg.target = TO_CAR;
     PacketHello* p = (PacketHello*) &current_msg.payload_buf;
@@ -169,7 +169,7 @@ As of now, the creation of the packet and the sending of the packet occur in one
 
 void gen_solution(void) {
     safe_memset(&current_msg, 0, sizeof(Message));
-    message_init(&current_msg);
+    init_message(&current_msg);
     current_msg.msg_magic = SOLVE;
     current_msg.target = TO_CAR;
     PacketSolution* p = (PacketSolution*) &current_msg.payload_buf;
@@ -264,7 +264,7 @@ bool handle_solution(Message* message) {
 
 void gen_chall(void) {
     safe_memset(&current_msg, 0, sizeof(Message));
-    message_init(&current_msg);
+    init_message(&current_msg);
     current_msg.msg_magic = CHALL;
     current_msg.target = TO_P_FOB;
 
@@ -278,7 +278,7 @@ void gen_chall(void) {
 
 void gen_end(void) {
     safe_memset(&current_msg, 0, sizeof(Message));
-    message_init(&current_msg);
+    init_message(&current_msg);
     current_msg.msg_magic = END;
     current_msg.target = TO_P_FOB;
 
