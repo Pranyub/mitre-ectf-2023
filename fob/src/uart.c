@@ -11,6 +11,10 @@
 #include "uart.h"
 #include "util.h"
 
+/**
+ * @brief Initializes device <-> device and host <-> device UART lines
+ * 
+ */
 void uart_init(void) {
 
     //Enable Device <--> Device UART
@@ -55,7 +59,15 @@ void uart_init(void) {
 }
 
 
-// send a message packet over uart
+/**
+ * @brief Sends a message over a given UART port
+ * 
+ * As of right now, the entirety of the struct is sent over.
+ * Perhaps in the future we could send each field individually, but this seems to work just fine.
+ * 
+ * @param PORT the UART Port to use
+ * @param message the message to send
+ */
 void uart_send_message(const uint32_t PORT, Message* message) {
 
     //send everything in message
@@ -64,13 +76,30 @@ void uart_send_message(const uint32_t PORT, Message* message) {
     }
 }
 
-//send raw bytes over uart
+/**
+ * @brief Sends raw bytes over a given UART PORT
+ * 
+ * @param PORT the UART Port to use
+ * @param message the buffer to send
+ * @param size the number of bytes to send
+ */
 void uart_send_raw(const uint32_t PORT, void* message, uint16_t size) {
     for(size_t i = 0; i < size; i++) {
         UARTCharPut(PORT, ((uint8_t*) message)[i]);
     }
 }
 
+/**
+ * @brief Attempts to read a message struct into a given buffer.
+ * 
+ * [NOTE]: This function offers no integrity verification!!! Corruption is definitely possible.
+ * In the future, the UART buffer should be periodically flushed until a magic is found.
+ * 
+ * @param PORT the UART Port to use
+ * @param message the buffer to write to
+ * @return true if the buffer was filled up
+ * @return false if the read timed out
+ */
 bool uart_read_message(const uint32_t PORT, Message* message) {
     size_t i = 0;
     size_t timeout = 0;
@@ -85,10 +114,14 @@ bool uart_read_message(const uint32_t PORT, Message* message) {
         timeout++;
         ((uint8_t*) message)[i] = UARTCharGet(PORT);
     }
-    
+
     return true;
 }
-//initialize eeprom
+
+/**
+ * @brief Initializes the internal eeprom. Resets the board on failure.
+ * 
+ */
 void eeprom_init(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
 
@@ -101,13 +134,25 @@ void eeprom_init(void) {
 //Not sure if EEPROM is mapped as an iommu device - do some research and see if attacks that way are possible?
 
 //TODO: Add boundry checks to read/write methods
-//wrapper to read len bytes of a given address into a pointer (eeprom address starts at 0)
+/**
+ * @brief Wrapper to read len bytes into a buffer from a given address
+ * 
+ * @param msg buffer to read into
+ * @param len number of bytes to read
+ * @param address read address (starts at 0)
+ */
 void eeprom_read(void* msg, size_t len, size_t address) {
     EEPROMRead(msg, address, len);
 }
 
 
-//wrapper to write len bytes of a pointer to the given eeprom address (address starts at 0)
+/**
+ * @brief Wrapper to write len bytes from a buffer to a given EEPROM address
+ * 
+ * @param msg buffer to write from
+ * @param len number of bytes to write
+ * @param address write address (starts at 0)
+ */
 void eeprom_write(void* msg, size_t len, size_t address) {
     EEPROMProgram(msg, address, len);
 }
