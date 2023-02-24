@@ -14,6 +14,11 @@ cd BearSSL
 make CONF=samd20
 ```
 
+## TODO
+- test random number generator (add temp stuff)
+- test timeout
+- misc packet tests (e.g. forgeries, replay, etc)
+- figure out how to disable debug ports? (if not already disabled)
 
 ## Design Structure
 - `car` - source code for building car devices

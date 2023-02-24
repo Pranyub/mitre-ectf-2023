@@ -7,9 +7,8 @@
 #include "util.h"
 #include "authentication.h"
 
-void delay(size_t counter) {
+#define delay(counter) \
     for(size_t i = 0; i < counter; i++);
-}
 
 int main(void) {
     
@@ -26,7 +25,7 @@ int main(void) {
     uint8_t curr_sw_state = GPIO_PIN_4;
 
     volatile unsigned long long time_counter = 0;
-    volatile unsigned long long timestamp = time_counter;
+    #define TIMER_THRESHOLD 1000
 
     while(true) {
         
@@ -43,10 +42,17 @@ int main(void) {
         prev_sw_state = curr_sw_state;
         /******************************************************************/
         if(UARTCharsAvail(DEVICE_UART)) {
-            parse_inc_message();
-            send_next_message();
+            if(parse_inc_message()) {
+                send_next_message();
+                time_counter = 0;
+            }
         }
 
         time_counter++;
+
+        if(time_counter > TIMER_THRESHOLD) {
+            reset_state();
+            time_counter = 0;
+        }
     }
 }

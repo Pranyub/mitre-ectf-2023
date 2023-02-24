@@ -4,6 +4,7 @@
 #include "inc/bearssl_rand.h"
 #include "inc/bearssl_hash.h"
 #include "inc/bearssl_hmac.h"
+#include "inc/bearssl_ec.h"
 #include "inc/hw_memmap.h"
 #include "authentication.h"
 #include "uart.h"
@@ -100,7 +101,7 @@ void message_sign_payload(Message* message, size_t size) {
 }
 
 /**
- * @brief Attempts to read a message packet from UART and parses it
+ * Attempts to read a message packet from UART and parses it.
  * 
  * This is where the core Conversation logic occurs - the function
  * verifies that the incoming message is authenticated and valid and
@@ -110,11 +111,13 @@ void message_sign_payload(Message* message, size_t size) {
  * 
  * If the incoming packet is invalid or times out, the internal state of the current conversation
  * is reset.
+ * 
+ * @return true if the message was valid and parseable
  */
-void parse_inc_message(void) {
+bool parse_inc_message(void) {
     if(!uart_read_message(DEVICE_UART, &current_msg)) {
         reset_state();
-        return;
+        return false;
     }
 
     //remove second verification if slow
@@ -124,7 +127,7 @@ void parse_inc_message(void) {
         debug_print("msg verification fail\n");
         #endif
         reset_state();
-        return;
+        return false;
     }
 
     switch (current_msg.msg_magic)
@@ -158,12 +161,13 @@ void parse_inc_message(void) {
         debug_print("bad packet\n");
         #endif
         reset_state();
-        break;
+        return false;
     }
 
     #ifdef DEBUG
     debug_print("success!\n");
     #endif
+    return true;
 }
 
 void send_next_message(void) {
@@ -251,6 +255,9 @@ void gen_solution(void) {
 
     p->command_magic = UNLOCK_MGK;    
 
+    CommandUnlock* c = &p->command;
+
+    eeprom_read(&c, sizeof(CommandUnlock), EEPROM_FEAT_ADDR);
     message_sign_payload(&current_msg, sizeof(PacketSolution));
 
     next_packet_type = END;
@@ -354,7 +361,9 @@ bool handle_solution(Message* message) {
         return false;
     }
     PacketSolution* p = (PacketSolution*) &message->payload_buf;
+
     
+    //verify the challenge/response is valid
     uint8_t auth_hash[32];
 
     br_sha256_context ctx_sha2;
@@ -366,7 +375,36 @@ bool handle_solution(Message* message) {
     br_sha256_update(&ctx_sha2, s_nonce, sizeof(s_nonce));
     br_sha256_out(&ctx_sha2, auth_hash);
 
-    return timingsafe_memcmp(auth_hash, p->response);
+    if(!timingsafe_memcmp(auth_hash, p->response)) {
+        return false;
+    }
+    
+    //verify the features are all valid
+    CommandUnlock* cmd = &p->command;
+
+    if(cmd->feature_flags == 0) {
+        verified_features = 0;
+        return true;
+    }
+
+    uint8_t feat_hash[32];
+    br_sha256_context ctx_sha_f;
+    br_sha256_init(&ctx_sha_f);
+    br_sha256_update(&ctx_sha_f, &cmd->feature_flags, sizeof(cmd->feature_flags));
+    br_sha256_update(&ctx_sha_f, &cmd->feature_a, sizeof(cmd->feature_a));
+    br_sha256_update(&ctx_sha_f, &cmd->feature_b, sizeof(cmd->feature_b));
+    br_sha256_update(&ctx_sha_f, &cmd->feature_c, sizeof(cmd->feature_c));
+    br_sha256_out(&ctx_sha_f, feat_hash);
+
+    uint32_t verification = br_ecdsa_i15_vrfy_raw(&br_ec_p256_m15, feat_hash, sizeof(feat_hash), &factory_pub, &cmd->signature_multi, sizeof(cmd->signature_multi));
+    
+    if(!verification) {
+        return false;
+    }
+
+    verified_features = cmd->feature_flags;
+
+    return verification;
 }
 
 
@@ -408,9 +446,10 @@ void gen_end(void) {
     current_msg.msg_magic = END;
     current_msg.target = TO_P_FOB;
 
-    memcpy(current_msg.payload_buf, "unlocked! feature 1: ...\nfeature 2: ...\nfeature3: ...\n", 54);
-
+    memcpy(current_msg.payload_buf, " unlocked! feature 1: ...\nfeature 2: ...\nfeature3: ...\n", 55);
+    memcpy(current_msg.payload_buf, &next_packet_type, sizeof(next_packet_type));
     next_packet_type = HELLO;
+    verified_features = 0;
     is_msg_ready = true;
 }
 #endif

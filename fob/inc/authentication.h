@@ -15,7 +15,8 @@
 
 //random should be stored on EEPROM so it may persist on reset
 #define EEPROM_RAND_ADDR 0x0000
-
+#define EEPROM_
+#define EEPROM_FEAT_ADDR 0x0064
 //address of uninitialized memory (use static memory directives in the future?)
 #define RAND_UNINIT 0x00008000 - 2048
 
@@ -25,6 +26,8 @@
 #define FACTORY_ENTROPY 0xdf013746886b5dcc
 #define PAIR_SECRET {0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41}
 static uint8_t car_secret[] = PAIR_SECRET; //is there a better way to do this?
+static uint8_t factory_pub[64];
+
 
 //context for random number generator
 static br_hmac_drbg_context ctx_rand;
@@ -58,7 +61,7 @@ void reset_state(void);
 
 void message_sign_payload(Message* message, size_t size);
 
-void parse_inc_message(void);
+bool parse_inc_message(void);
 
 void send_next_message(void);
 
@@ -95,6 +98,8 @@ void gen_end(void);
 
 bool handle_hello(Message* message);
 bool handle_solution(Message* message);
+
+static uint8_t verified_features = 0;
 
 #endif
 

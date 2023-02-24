@@ -43,6 +43,7 @@ typedef struct {
 } Feature;
 
 typedef struct {
+    uint8_t feature_flags;
     Feature feature_a;
     Feature feature_b;
     Feature feature_c;
@@ -62,7 +63,7 @@ typedef struct {
     uint8_t command_magic;
     size_t command_length;
     uint8_t response[32];
-    uint8_t command[352];
+    CommandUnlock command;
 } PacketSolution;
 
 //will compiler optimize this away?
