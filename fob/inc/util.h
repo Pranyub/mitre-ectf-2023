@@ -6,6 +6,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#define DEBUG 1
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -72,5 +74,6 @@ typedef struct {
         }                              \
     }                                  
 
+#define debug_print(string) \
+    uart_send_raw(HOST_UART, string, sizeof(string) - 1)
 #endif
-

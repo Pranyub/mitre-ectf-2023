@@ -27,7 +27,7 @@ int main(void) {
 
     volatile unsigned long long time_counter = 0;
     volatile unsigned long long timestamp = time_counter;
-    start_unlock_sequence();
+
     while(true) {
         
         // Poll for button press

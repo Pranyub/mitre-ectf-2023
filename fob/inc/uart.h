@@ -37,7 +37,7 @@ Provides a wrapper for uart and eeprom access. Maybe should be called communicat
 
 /*********************************************/
 
-const char* uart_magic = "0ops"; //magic for sending packet
+static const char* uart_magic = "0ops"; //magic for sending packet
 
 //currently unused; just using a for loop
 #define UART_SEND_LONG(PORT, data) {\

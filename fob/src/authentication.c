@@ -65,10 +65,9 @@ bool verify_message(Message* message) {
     uint8_t hash[32];
     br_hmac_context ctx_hmac;
     br_hmac_init(&ctx_hmac, &ctx_hmac_key, sizeof(hash));
-    br_hmac_update(&ctx_hmac, &message, sizeof(Message) - PAYLOAD_BUF_SIZE \
-        + message->payload_size - sizeof(hash));
+    br_hmac_update(&ctx_hmac, &message, sizeof(Message) - 36); //everything except hash (and frags)
 
-    br_hmac_outCT(&ctx_hmac, NULL, 0, 0, 0, hash);
+    br_hmac_out(&ctx_hmac, hash);
 
     if(!timingsafe_memcmp(hash, message->payload_hash, sizeof(hash))) {
         return false;
@@ -95,10 +94,9 @@ void message_sign_payload(Message* message, size_t size) {
 
     br_hmac_context ctx_hmac;
     br_hmac_init(&ctx_hmac, &ctx_hmac_key, sizeof(message->payload_hash));
-    br_hmac_update(&ctx_hmac, &message, sizeof(Message) - PAYLOAD_BUF_SIZE \
-        + message->payload_size - sizeof(message->payload_hash));
+    br_hmac_update(&ctx_hmac, message, sizeof(Message) - 36); //everything except hash (and frags)
 
-    br_hmac_outCT(&ctx_hmac, NULL, 0, 0, 0, message->payload_hash);
+    br_hmac_out(&ctx_hmac, message->payload_hash);
 }
 
 /**
@@ -122,7 +120,9 @@ void parse_inc_message(void) {
     //remove second verification if slow
     if(!verify_message(&current_msg) && !verify_message(&current_msg)) {
         safe_memset(&current_msg, 0, sizeof(Message));
-        uart_send_raw(HOST_UART, "msg verification fail\n", 23);
+        #ifdef DEBUG
+        debug_print("msg verification fail\n");
+        #endif
         reset_state();
         return;
     }
@@ -154,14 +154,26 @@ void parse_inc_message(void) {
         }
     #endif
     default:
-        uart_send_raw(HOST_UART, "bad packet\n", 11);
+        #ifdef DEBUG
+        debug_print("bad packet\n");
+        #endif
         reset_state();
         break;
     }
+
+    #ifdef DEBUG
+    debug_print("success!\n");
+    #endif
 }
 
 void send_next_message(void) {
+    #ifdef DEBUG
+    debug_print("attempting to send... ");
+    #endif
     if(is_msg_ready) {
+        #ifdef DEBUG
+        debug_print("send!\n");
+        #endif
         is_msg_ready = false;
         uart_send_message(DEVICE_UART, &current_msg);
     }
@@ -185,8 +197,7 @@ void send_next_message(void) {
 void start_unlock_sequence(void) {
     reset_state();
     gen_hello();
-    uart_send_message(DEVICE_UART, &current_msg);
-    next_packet_type = CHALL;
+    send_next_message();
 }
 
 /**
@@ -205,7 +216,7 @@ void gen_hello(void) {
     rand_get_bytes(challenge, sizeof(challenge));
     
     memcpy(&p->chall, &challenge, sizeof(challenge)); //is this safe?
-    message_sign_payload(&current_msg, sizeof(p));
+    message_sign_payload(&current_msg, sizeof(PacketHello));
     next_packet_type = CHALL;
     is_msg_ready = true;
 }
@@ -240,7 +251,7 @@ void gen_solution(void) {
 
     p->command_magic = UNLOCK_MGK;    
 
-    message_sign_payload(&current_msg, sizeof(p));
+    message_sign_payload(&current_msg, sizeof(PacketSolution));
 
     next_packet_type = END;
     is_msg_ready = true;
@@ -419,6 +430,7 @@ void reset_state(void) {
     rand_get_bytes(&s_nonce, sizeof(s_nonce));
 
     next_packet_type = HELLO;
+    is_msg_ready = false;
 
     memset(challenge, 0, sizeof(challenge)); //safe?
     memset(challenge_resp, 0, sizeof(challenge_resp)); //safe?

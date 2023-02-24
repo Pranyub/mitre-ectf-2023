@@ -107,37 +107,54 @@ void uart_send_raw(const uint32_t PORT, void* message, uint16_t size) {
  */
 bool uart_read_message(const uint32_t PORT, Message* message) {
     size_t i = 0;
-    size_t timeout = 0;
-    bool magic_found = false;
+    size_t j = 0;
+    size_t timeout = 0; //really not a fan of doing timeouts like these... maybe we should use interrupts?
+    //wait this doesnt even work rip; UARTCharGet is blocking...
 
-    #define TIMEOUT_THRESHOLD sizeof(Message) * 1000
+    #define TIMEOUT_THRESHOLD 100
 
 
     //go through uart buffer until you find the magic header "0ops"
-    while(UARTCharsAvail(PORT)) {
-        for(uint8_t j = 0; j < 4; j++) {
+   while(j < 4) {
 
-            if(!UARTCharsAvail(PORT))
+        if(!UARTCharsAvail(PORT)) {
+            timeout++;
+            if(timeout > TIMEOUT_THRESHOLD) {
+                #ifdef DEBUG
+                debug_print("[d] no magic\n");
+                #endif
                 return false;
-            if(uart_magic[i] != UARTCharGet(PORT)) {
-                continue;
             }
         }
-        magic_found = true;
-        break;
-    }
-
-    if(!magic_found) {
-        return false;
-    }
-
-    while(UARTCharsAvail(PORT) && i < sizeof(Message)) {
-
-        if(timeout > TIMEOUT_THRESHOLD) {
-            return false;
+        else if(uart_magic[j] != UARTCharGet(PORT)) {
+            timeout = 0;
+            j = 0;
         }
-        timeout++;
-        ((uint8_t*) message)[i] = UARTCharGet(PORT);
+        else {
+            timeout = 0;
+            j++;
+        }
+    }
+
+    timeout = 0;
+
+    while(i < sizeof(Message)) {
+
+        if(!UARTCharsAvail(PORT)) {
+            timeout++;
+            if(timeout > TIMEOUT_THRESHOLD) {
+                #ifdef DEBUG
+                debug_print("[d] timeout\n");
+                #endif
+                return false;
+            }
+        }
+        else {
+            timeout = 0;
+            ((uint8_t*) message)[i] = UARTCharGet(PORT);
+            uart_send_raw(PORT, &((uint8_t*) message)[i], 1);
+            i++;
+        }
     }
 
     return true;
