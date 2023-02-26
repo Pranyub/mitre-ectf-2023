@@ -257,7 +257,7 @@ void gen_solution(void) {
 
     CommandUnlock* c = &p->command;
 
-    eeprom_read(&c, sizeof(CommandUnlock), EEPROM_FEAT_ADDR);
+    eeprom_read(&c, sizeof(CommandUnlock), EEPROM_SIG_ADDR);
     message_sign_payload(&current_msg, sizeof(PacketSolution));
 
     next_packet_type = END;
@@ -300,11 +300,11 @@ bool handle_chall(Message* message) {
  */
 bool handle_end(Message* message) {
 
-    uart_send_raw(HOST_UART, "recieved end!\n", 14);
     uart_send_message(HOST_UART, message);
     reset_state();
     return true;
 }
+
 #endif
 
 
@@ -446,8 +446,26 @@ void gen_end(void) {
     current_msg.msg_magic = END;
     current_msg.target = TO_P_FOB;
 
-    memcpy(current_msg.payload_buf, " unlocked! feature 1: ...\nfeature 2: ...\nfeature3: ...\n", 55);
-    memcpy(current_msg.payload_buf, &next_packet_type, sizeof(next_packet_type));
+    uint8_t unlock_msg[64];
+
+    eeprom_read(unlock_msg, sizeof(unlock_msg), EEPROM_UNLOCK_ADDR);
+    uart_send_raw(HOST_UART, unlock_msg, sizeof(unlock_msg));
+
+    if(verified_features & 0x01) {
+        eeprom_read(unlock_msg, sizeof(unlock_msg), EEPROM_FEAT_A_ADDR);
+        uart_send_raw(HOST_UART, unlock_msg, sizeof(unlock_msg));
+    }
+    
+    if(verified_features & 0x02) {
+        eeprom_read(unlock_msg, sizeof(unlock_msg), EEPROM_FEAT_B_ADDR);
+        uart_send_raw(HOST_UART, unlock_msg, sizeof(unlock_msg));
+    }
+
+    if(verified_features & 0x04) {
+        eeprom_read(unlock_msg, sizeof(unlock_msg), EEPROM_FEAT_B_ADDR);
+        uart_send_raw(HOST_UART, unlock_msg, sizeof(unlock_msg));
+    }
+
     next_packet_type = HELLO;
     verified_features = 0;
     is_msg_ready = true;

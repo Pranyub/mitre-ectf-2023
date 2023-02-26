@@ -111,7 +111,7 @@ bool uart_read_message(const uint32_t PORT, Message* message) {
     size_t timeout = 0; //really not a fan of doing timeouts like these... maybe we should use interrupts?
     //wait this doesnt even work rip; UARTCharGet is blocking...
 
-    #define TIMEOUT_THRESHOLD 100
+    #define TIMEOUT_THRESHOLD 100 //not necessary, but might as well leave it in i guess
 
 
     //go through uart buffer until you find the magic header "0ops"

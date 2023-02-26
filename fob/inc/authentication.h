@@ -15,8 +15,23 @@
 
 //random should be stored on EEPROM so it may persist on reset
 #define EEPROM_RAND_ADDR 0x0000
-#define EEPROM_
-#define EEPROM_FEAT_ADDR 0x0064
+
+
+#ifdef FOB_TARGET
+
+#define EEPROM_SIG_ADDR 0x200
+
+#endif
+
+#ifdef CAR_TARGET
+
+#define EEPROM_FEAT_A_ADDR 0x700
+#define EEPROM_FEAT_B_ADDR 0x740
+#define EEPROM_FEAT_C_ADDR 0x780
+#define EEPROM_UNLOCK_ADDR 0x7C0
+
+#endif
+
 //address of uninitialized memory (use static memory directives in the future?)
 #define RAND_UNINIT 0x00008000 - 2048
 
@@ -25,6 +40,7 @@
 //should be generated in 'secrets.h' and be unique for each fob (make this uint8[32])
 #define FACTORY_ENTROPY 0xdf013746886b5dcc
 #define PAIR_SECRET {0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41}
+#define PAIR_PIN 0xabcdef
 static uint8_t car_secret[] = PAIR_SECRET; //is there a better way to do this?
 static uint8_t factory_pub[64];
 
