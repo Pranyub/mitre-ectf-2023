@@ -14,10 +14,13 @@
 
 import json
 import argparse
+import secrets
 from pathlib import Path
 
-
 def main():
+
+    debug = True
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--car-id", type=int)
     parser.add_argument("--pair-pin", type=str)
@@ -26,22 +29,33 @@ def main():
     parser.add_argument("--paired", action="store_true")
     args = parser.parse_args()
 
+    print(args.secret_file)
+
+    f = open(args.secret_file, "r")
+    factory_secrets = json.load(fp)
+
+    dev_entropy = '{' + str([x for x in secrets.token_bytes(16)])[1:-1] + '}' #16 byte array
+
+    paired_secrets = f'''
+    #ifndef __FOB_SECRETS__
+    #define __FOB_SECRETS__
+    
+    #define PAIRED 1
+    #define SEC_PAIR_PIN {args.pair_pin}
+    #define SEC_CAR_ID {args.car_id}
+    #define SEC_PAIR_SECRET {factory_secrets['car'+args.car_id]}
+    #define SEC_FACTORY_PUB {factory_secrets['pubkey']}
+    #define SEC_FACTORY_ENTROPY {dev_entropy}
+
+    #endif
+    '''
+
+
     if args.paired:
-        # Open the secret file, get the car's secret
-        with open(args.secret_file, "r") as fp:
-            secrets = json.load(fp)
-            car_secret = secrets[str(args.car_id)]
 
         # Write to header file
         with open(args.header_file, "w") as fp:
-            fp.write("#ifndef __FOB_SECRETS__\n")
-            fp.write("#define __FOB_SECRETS__\n\n")
-            fp.write("#define PAIRED 1\n")
-            fp.write(f'#define PAIR_PIN "{args.pair_pin}"\n')
-            fp.write(f'#define CAR_ID "{args.car_id}"\n')
-            fp.write(f'#define CAR_SECRET "{car_secret}"\n\n')
-            fp.write('#define PASSWORD "unlock"\n\n')
-            fp.write("#endif\n")
+            fp.write(paired_secrets)
     else:
         # Write to header file
         with open(args.header_file, "w") as fp:

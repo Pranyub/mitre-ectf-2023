@@ -29,6 +29,11 @@ int main(void) {
 
     while(true) {
         
+
+        if(is_random_set != 1) {
+            break;
+        }
+
         // Poll for button press
         /******************************************************************/
         curr_sw_state = GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_4);

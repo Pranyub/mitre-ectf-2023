@@ -13,7 +13,9 @@
 # @copyright Copyright (c) 2023 The MITRE Corporation
 
 import argparse
-
+import json
+import hashlib
+from Crypto.Random import get_random_bytes
 
 # @brief Function to create a new feature package
 # @param package_name, name of the file to output package data to
@@ -22,14 +24,17 @@ import argparse
 def package(package_name, car_id, feature_number):
 
     # Pad id lenth to 8 bytes
-    car_id_len = len(car_id)
-    car_id_pad = (8 - car_id_len) * "\0"
+    car_id = int(car_id) & 0xff
+    feature_number = (int(feature_number) & 0xff) % 3 + 1 # we only support feature numbers 1 - 3 :/
+
+    s = open('/secrets/car_secrets.json', "r")
+    factory_secrets = json.load(s)
 
     # Create package to match defined structure on fob
     package_message_bytes = (
-        str.encode(car_id + car_id_pad)
-        + feature_number.to_bytes(1, "little")
-        + str.encode("\n")
+        car_id.to_bytes(1, 'little')
+        + feature_number.to_bytes(1, 'little')
+        + get_random_bytes(30)
     )
 
     # Write data out to package file

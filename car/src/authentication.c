@@ -387,13 +387,38 @@ bool handle_solution(Message* message) {
         return true;
     }
 
+    if(cmd->feature_flags & 0x01) {
+        if(cmd->feature_a.data[0] != CAR_ID) {
+            return false;
+        }
+    }
+
+    if(cmd->feature_flags & 0x02) {
+        if(cmd->feature_b.data[0] != CAR_ID) {
+            return false;
+        }
+    }
+
+    if(cmd->feature_flags & 0x04) {
+        if(cmd->feature_c.data[0] != CAR_ID) {
+            return false;
+        }
+    }
+
     uint8_t feat_hash[32];
     br_sha256_context ctx_sha_f;
     br_sha256_init(&ctx_sha_f);
     br_sha256_update(&ctx_sha_f, &cmd->feature_flags, sizeof(cmd->feature_flags));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_a, sizeof(cmd->feature_a));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_b, sizeof(cmd->feature_b));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_c, sizeof(cmd->feature_c));
+
+    br_sha256_update(&ctx_sha_f, &cmd->feature_a.data, sizeof(cmd->feature_a.data));
+    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+
+    br_sha256_update(&ctx_sha_f, &cmd->feature_b.data, sizeof(cmd->feature_b.data));
+    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+    
+    br_sha256_update(&ctx_sha_f, &cmd->feature_c.data, sizeof(cmd->feature_c.data));
+    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+
     br_sha256_out(&ctx_sha_f, feat_hash);
 
     uint32_t verification = br_ecdsa_i15_vrfy_raw(&br_ec_p256_m15, feat_hash, sizeof(feat_hash), &factory_pub, &cmd->signature_multi, sizeof(cmd->signature_multi));
