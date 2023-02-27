@@ -10,11 +10,12 @@
 #include <stddef.h>
 
 #define MESSAGE_HEADER_SIZE 83
+#define PAYLOAD_BUF_SIZE 512
 
 //message magics
-#define CAR_TARGET 0x63
-#define P_FOB_TARGET 0x70
-#define U_FOB_TARGET 0x75
+#define TO_CAR 0x63
+#define TO_P_FOB 0x70
+#define TO_U_FOB 0x75
 
 //packet magics
 #define HELLO 0x48 //('H')
@@ -22,20 +23,23 @@
 #define SOLVE 0x53 //('R')
 #define END 0x45   //('E')
 
+#define UNLOCK_MGK 0x4F //('O')
+
 typedef struct {
     uint8_t target;
     uint8_t msg_magic;
     uint64_t c_nonce;
     uint64_t s_nonce;
-    uint8_t payload_hash[32];
     size_t payload_size;
-    void* payload;
+    uint8_t payload_buf[PAYLOAD_BUF_SIZE];
+    uint8_t payload_hash[32];
 } Message;
 
 typedef struct {
-    size_t length;
+    uint8_t target;
+    uint8_t msg_magic;
     uint8_t nonce[12];
-    void* ct;
+    Message* msg;
 } EncryptedMessage;
 
 typedef struct {
@@ -66,5 +70,13 @@ typedef struct {
     uint8_t command[352];
 } PacketSolution;
 
-#endif
+//will compiler optimize this away?
+//also isnt this just memset lol
+#define safe_memset(address, value, size) \
+    for(size_t i = 0; i < size; i++) { \
+        if(i < size) {                 \
+            ((uint8_t*) address)[i] = value;        \
+        }                              \
+    }                                  
 
+#endif

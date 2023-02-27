@@ -55,42 +55,38 @@ void uart_init(void) {
 
 
 // send a message packet over uart
-void uart_send_message(const uint32_t PORT, Message* message) {
+void uart_send_message(const uint32_t PORT, EncryptedMessage* message) {
 
-    //send everything except for the payload
-    for(uint8_t i = 0; i < sizeof(Message) - sizeof(void*); i++) {
-        UARTCharPut(PORT, ((uint8_t*)message)[i]);
+    //send magic, target, and nonce
+    for(size_t i = 0; i < 14 && i >= 0; i++) {
+        UARTCharPut(PORT, ((uint8_t*) message)[i]);
     }
 
-    //send the payload
-    //!!! what if message->payload_size is corrupted?
-    for(uint8_t i = 0; i < message->payload_size; i++) {
-        UARTCharPut(PORT, ((uint8_t*)message->payload)[i]);
-    }
-
-}
-
-// send an encrypted message packet over uart
-void uart_send_encrypted_message(const uint32_t PORT, EncryptedMessage* message) {
-
-    // send the length header and nonce
-    for(uint8_t i = 0; i < sizeof(EncryptedMessage) - sizeof(void*) && i >= 0; i++) {
-        UARTCharPut(PORT, ((uint8_t*)message)[i]);
-    }
-
-    // send the ciphertext
-    for(uint8_t i = 0; i < message->length - 12 && i >= 0; i++) {
-        UARTCharPut(PORT, ((uint8_t*)message->ct)[i]);
+    // send the encrypted message ciphertext, but don't send the magic and target again
+    for(size_t i = 2; i < sizeof(Message) && i >= 2; i++) {
+        UARTCharPut(PORT, ((uint8_t*) message->msg)[i]);
     }
 }
 
 //send raw bytes over uart
-void uart_send_raw(const uint32_t PORT, uint8_t* message, uint16_t size) {
-    for(int i = 0; i < size; i++) {
-        UARTCharPut(PORT, message[i]);
+void uart_send_raw(const uint32_t PORT, void* message, uint16_t size) {
+    for(size_t i = 0; i < size; i++) {
+        UARTCharPut(PORT, ((uint8_t*) message)[i]);
     }
 }
 
+void uart_read_message(const uint32_t PORT, EncryptedMessage* ct, Message *message) {
+    size_t i = 0;
+    while(UARTCharsAvail(PORT) && i < 14 && i >= 0) {
+        ((uint8_t*) ct)[i] = UARTCharGet(PORT);
+    }
+
+    i = 2;
+    while(UARTCharsAvail(PORT) && i < sizeof(Message) && i >= 2) {
+        ((uint8_t*) message)[i] = UARTCharGet(PORT);
+    }
+    ct->msg = message;
+}
 //initialize eeprom
 void eeprom_init(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
