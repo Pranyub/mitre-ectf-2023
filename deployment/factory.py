@@ -4,6 +4,7 @@ from Crypto.PublicKey import ECC
 from Crypto.Signature import DSS
 from Crypto.Random import get_random_bytes
 import hashlib
+import json
 import sys
 
 key = ECC.generate(curve='P-256')
@@ -26,7 +27,7 @@ def gen_features(car_id):
         feature['sig'] = signer.sign(m)
         features[str(x)] = feature
 
-    
+
 
 
 if(len(sys.argv) != 2):
@@ -39,11 +40,13 @@ f = open(secrets_dir + '/car_secrets.json', 'w')
 
 car_secrets = {}
 
-car_secrets['pubkey'] = key.public_key().export_key(format='raw')
-car_secrets['privkey'] = key.export_key(format='DER')
+car_secrets['pubkey'] = key.public_key().export_key(format='raw').hex()
+car_secrets['privkey'] = key.export_key(format='DER').hex()
 
 for x in range(255):
     car = {}
-    car['key'] = get_random_bytes(16)
+    car['key'] = get_random_bytes(16).hex()
 
-    car_secrets['car' + x] = get_random_bytes(16)
+    car_secrets['car' + str(x)] = get_random_bytes(16).hex()
+
+f.write(json.dumps(car_secrets))
