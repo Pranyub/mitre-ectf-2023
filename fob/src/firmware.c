@@ -6,6 +6,7 @@
 #include "uart.h"
 #include "util.h"
 #include "authentication.h"
+#include "fobstuff.h"
 
 #define delay(counter) \
     for(size_t i = 0; i < counter; i++);
@@ -62,5 +63,13 @@ int main(void) {
                 time_counter = 0;
             }
         }
+
+        /*****************************************************************/
+        /*                     Host Stuff                                */
+        /*****************************************************************/
+        if(UARTCharsAvail(HOST_UART)) {
+            handle_host_msg();
+        }
+
     }
 }

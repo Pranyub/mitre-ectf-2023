@@ -7,7 +7,7 @@
 #include "inc/bearssl_ec.h"
 
 
-void handle_feature(void) {
+void handle_host_msg(void) {
 
     uint8_t packet[sizeof(Message)];
 
@@ -17,7 +17,7 @@ void handle_feature(void) {
 
 
     if(packet[0] == UPLOAD_FEATURE) {
-        uint8_t* feature
+        handle_upload_feature(packet);
     }
 
 }
@@ -30,8 +30,18 @@ void handle_upload_feature(uint8_t* packet) {
     br_sha256_update(&ctx_sha, &packet[1], 32);
     br_sha256_out(&ctx_sha, hash);
 
-    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+    br_ec_public_key pk;
+    pk.curve = BR_EC_brainpoolP256r1;
+    pk.q = factory_pub;
+    pk.qlen = 65;
 
-    uint32_t verification = br_ecdsa_i15_vrfy_raw(&br_ec_p256_m15, hash, sizeof(hash), &factory_pub, &packet[33], 65);
+    uint32_t verification = br_ecdsa_i15_vrfy_raw(&br_ec_p256_m15, hash, sizeof(hash), &pk, &packet[33], 64);
+
+    #ifdef DEBUG
+    debug_print("verification: ");
+    uart_send_raw(HOST_UART, &verification, sizeof(verification));
+    uart_send_raw(HOST_UART, &pakcet[1], 32);
+    uart_send_raw(HOST_UART, &packet[33], 64);
+    #endif
 }
 

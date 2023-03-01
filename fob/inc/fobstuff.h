@@ -1,5 +1,6 @@
 #ifndef FOBSTUFF_H
 #define FOBSTUFF_H
+
 #include <stdbool.h>
 #include <stdint.h>
 #include "secrets.h"
@@ -17,6 +18,6 @@ typedef struct {
 
 static bool paired = PAIRED
 
-void handle_feature(void);
-
+void handle_host_msg(void);
+void handle_upload_feature(uint8_t* packet);
 #endif

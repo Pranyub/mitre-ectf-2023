@@ -158,7 +158,7 @@ bool parse_inc_message(void) {
     }
 
     //remove second verification if slow
-    if(!verify_message(&current_msg) && !verify_message(&current_msg)) {
+    if(!verify_message(&current_msg) || !verify_message(&current_msg)) {
         safe_memset(&current_msg, 0, sizeof(Message));
         #ifdef DEBUG
         debug_print("msg verification fail\n");
