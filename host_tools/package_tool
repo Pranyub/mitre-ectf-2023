@@ -16,6 +16,10 @@ import argparse
 import json
 import hashlib
 from Crypto.Random import get_random_bytes
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import ECC
+from Crypto.Signature import DSS
+
 
 # @brief Function to create a new feature package
 # @param package_name, name of the file to output package data to
@@ -36,6 +40,8 @@ def package(package_name, car_id, feature_number):
         + feature_number.to_bytes(1, 'little')
         + get_random_bytes(30)
     )
+
+    pk = factory_secrets['privkey']
 
     # Write data out to package file
     # /package_dir/ is the mounted location inside the container - should not change
