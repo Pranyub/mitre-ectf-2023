@@ -19,6 +19,12 @@ void init_message(Message* message) {
     safe_memset(&current_msg, 0, sizeof(current_msg));
     message->c_nonce = c_nonce;
     message->s_nonce = s_nonce;
+    #ifdef CAR_TARGET
+    message->target = TO_P_FOB;
+    #endif
+    #ifdef P_FOB_TARGET
+    message->target = TO_CAR;
+    #endif
 }
 
 
@@ -38,27 +44,53 @@ bool verify_message(Message* message) {
 
     // Ensure message is going to the correct device type
     if(message->target != DEVICE_TYPE) {
+
+        #ifdef DEBUG
+        debug_print("bad target: ");
+        uart_send_raw(HOST_UART, &message->target, sizeof(message->target));
+        #endif
+
         return false;
     }
 
     // Ensure the client nonce is valid if it needs to be
     if(message->msg_magic != HELLO && message->c_nonce != c_nonce) {
+
+        #ifdef DEBUG
+        debug_print("bad c_nonce: ");
+        uart_send_raw(HOST_UART, &message->c_nonce, sizeof(message->c_nonce));
+        uart_send_raw(HOST_UART, &c_nonce, sizeof(c_nonce));
+        #endif
+
         return false;
     }
     
     // Ensure the server nonce is valid if it needs to be
     if (message->msg_magic != HELLO && message->msg_magic != CHALL && message->s_nonce != s_nonce)
     {
+        #ifdef DEBUG
+        debug_print("bad s_nonce: ");
+        uart_send_raw(HOST_UART, &message->s_nonce, sizeof(message->s_nonce));
+        uart_send_raw(HOST_UART, &s_nonce, sizeof(s_nonce));
+        #endif
        return false;
     }
 
     // Redundant(?) check to ensure there is a payload
     if(message->payload_size < 1) {
+        #ifdef DEBUG
+        debug_print("bad payload size: ");
+        uart_send_raw(HOST_UART, &message->payload_size, sizeof(message->payload_size));
+        #endif
         return false;
     }
 
     // Ensure that the recieved packet type is the expected type of packet to be recieved
     if(next_packet_type != message->msg_magic || next_packet_type == 0) {
+        #ifdef DEBUG
+        debug_print("bad packet type: ");
+        uart_send_raw(HOST_UART, &message->msg_magic, sizeof(message->msg_magic));
+        #endif
         return false;
     }
 
@@ -70,7 +102,12 @@ bool verify_message(Message* message) {
 
     br_hmac_out(&ctx_hmac, hash);
 
-    if(!timingsafe_memcmp(hash, message->payload_hash, sizeof(hash))) {
+    if(!memcmp(hash, message->payload_hash, sizeof(hash))) {
+        #ifdef DEBUG
+        debug_print("bad hash\n");
+        uart_send_raw(HOST_UART, hash, sizeof(hash));
+        uart_send_raw(HOST_UART, message->payload_hash, sizeof(message->payload_hash));
+        #endif
         return false;
     }
 
@@ -116,7 +153,7 @@ void message_sign_payload(Message* message, size_t size) {
  */
 bool parse_inc_message(void) {
     if(!uart_read_message(DEVICE_UART, &current_msg)) {
-        reset_state();
+        //reset_state();
         return false;
     }
 
@@ -280,7 +317,7 @@ bool handle_chall(Message* message) {
         return false;
     }
 
-    PacketChallenge* p = &(message->payload_buf);
+    PacketChallenge* p = (PacketChallenge*) &(message->payload_buf);
 
     memcpy(challenge_resp, p->chall, sizeof(challenge_resp));
 
@@ -371,11 +408,11 @@ bool handle_solution(Message* message) {
     br_sha256_update(&ctx_sha2, challenge, sizeof(challenge));
     br_sha256_update(&ctx_sha2, challenge_resp, sizeof(challenge_resp));
     br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
-    br_sha256_update(&ctx_sha2, c_nonce, sizeof(c_nonce));
-    br_sha256_update(&ctx_sha2, s_nonce, sizeof(s_nonce));
+    br_sha256_update(&ctx_sha2, &c_nonce, sizeof(c_nonce));
+    br_sha256_update(&ctx_sha2, &s_nonce, sizeof(s_nonce));
     br_sha256_out(&ctx_sha2, auth_hash);
 
-    if(!timingsafe_memcmp(auth_hash, p->response)) {
+    if(!memcmp(auth_hash, p->response, sizeof(auth_hash))) {
         return false;
     }
     
@@ -387,16 +424,45 @@ bool handle_solution(Message* message) {
         return true;
     }
 
+    if(cmd->feature_flags & 0x01) {
+        if(cmd->feature_a.data[0] != CAR_ID) {
+            return false;
+        }
+    }
+
+    if(cmd->feature_flags & 0x02) {
+        if(cmd->feature_b.data[0] != CAR_ID) {
+            return false;
+        }
+    }
+
+    if(cmd->feature_flags & 0x04) {
+        if(cmd->feature_c.data[0] != CAR_ID) {
+            return false;
+        }
+    }
+
     uint8_t feat_hash[32];
     br_sha256_context ctx_sha_f;
     br_sha256_init(&ctx_sha_f);
     br_sha256_update(&ctx_sha_f, &cmd->feature_flags, sizeof(cmd->feature_flags));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_a, sizeof(cmd->feature_a));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_b, sizeof(cmd->feature_b));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_c, sizeof(cmd->feature_c));
+
+    br_sha256_update(&ctx_sha_f, &cmd->feature_a.data, sizeof(cmd->feature_a.data));
+    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+
+    br_sha256_update(&ctx_sha_f, &cmd->feature_b.data, sizeof(cmd->feature_b.data));
+    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+    
+    br_sha256_update(&ctx_sha_f, &cmd->feature_c.data, sizeof(cmd->feature_c.data));
+    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+
     br_sha256_out(&ctx_sha_f, feat_hash);
 
-    uint32_t verification = br_ecdsa_i15_vrfy_raw(&br_ec_p256_m15, feat_hash, sizeof(feat_hash), &factory_pub, &cmd->signature_multi, sizeof(cmd->signature_multi));
+    br_ec_public_key pk;
+    pk.curve = BR_EC_brainpoolP256r1;
+    pk.q = factory_pub;
+    pk.qlen = 65;
+    uint32_t verification = br_ecdsa_i15_vrfy_raw(&br_ec_p256_m15, feat_hash, sizeof(feat_hash), &pk, &cmd->signature_multi, sizeof(cmd->signature_multi));
     
     if(!verification) {
         return false;
@@ -531,8 +597,8 @@ void rand_init(void) {
     //override old source of persistent memory with new value
     br_hmac_drbg_generate(&ctx_rand, seed, SEED_SIZE);
     eeprom_write(seed, SEED_SIZE, EEPROM_RAND_ADDR);
-    is_random_set = 1;
 
+    is_random_set = 1;
 
     //also init hmac while we're at it
     br_hmac_key_init(&ctx_hmac_key, &br_sha256_vtable, car_secret, sizeof(car_secret));

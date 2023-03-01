@@ -129,6 +129,7 @@ ${COMPILER}/firmware.axf: ${BEAR_ROOT}/samd20/libbearssl.a
 copy_artifacts:
 	cp ${COMPILER}/firmware.bin ${BIN_PATH}
 	cp ${COMPILER}/firmware.axf ${ELF_PATH}
+	echo "no secrets 4 u (maybe O.o)" > ${EEPROM_PATH}
 
 SCATTERgcc_firmware=${TIVA_ROOT}/firmware.ld
 ENTRY_firmware=Firmware_Startup

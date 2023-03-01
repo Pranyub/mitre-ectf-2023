@@ -45,8 +45,8 @@ car_secrets['privkey'] = key.export_key(format='DER').hex()
 
 for x in range(255):
     car = {}
-    car['key'] = get_random_bytes(16).hex()
+    car['key'] = get_random_bytes(32).hex()
 
-    car_secrets['car' + str(x)] = get_random_bytes(16).hex()
+    car_secrets['car' + str(x)] = get_random_bytes(32).hex()
 
 f.write(json.dumps(car_secrets))

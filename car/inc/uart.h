@@ -13,7 +13,7 @@ Provides a wrapper for uart and eeprom access. Maybe should be called communicat
 #include "util.h"
 
 //#define DEVICE_UART ((uint32_t)UART1_BASE)
-#define DEVICE_UART ((uint32_t)UART0_BASE)
+#define DEVICE_UART ((uint32_t)UART1_BASE)
 #define HOST_UART ((uint32_t)UART0_BASE)
 
 /**********************************************
@@ -37,7 +37,7 @@ Provides a wrapper for uart and eeprom access. Maybe should be called communicat
 
 /*********************************************/
 
-static const char* uart_magic = "0ops"; //magic for sending packet
+static const uint8_t uart_magic[] = "0ops"; //magic for sending packet
 
 //currently unused; just using a for loop
 #define UART_SEND_LONG(PORT, data) {\

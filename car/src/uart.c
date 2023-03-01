@@ -69,13 +69,35 @@ void uart_init(void) {
  * @param message the message to send
  */
 void uart_send_message(const uint32_t PORT, Message* message) {
+
+    for(size_t i = 0; i < 300; i++) {
+        UARTCharPut(PORT, (uint8_t)i);
+    }
+
     for(size_t i = 0; i < 4; i++) {
+        #ifdef DEBUG
+        UARTCharPut(HOST_UART, uart_magic[i]);
+        #endif
         UARTCharPut(PORT, uart_magic[i]);
     }
 
+    uint8_t* struct_ptr = (uint8_t*) message;
+
     //send everything in message
     for(size_t i = 0; i < sizeof(Message); i++) {
-        UARTCharPut(PORT, ((uint8_t*) message)[i]);
+
+        while(UARTBusy(PORT));
+
+        #ifdef DEBUG
+        UARTCharPut(HOST_UART, struct_ptr[i]);
+        #endif
+
+        UARTCharPut(PORT, struct_ptr[i]);
+
+        if(i % 8 == 0) {
+            UARTCharGet(PORT);
+        }
+
     }
 }
 
@@ -109,9 +131,8 @@ bool uart_read_message(const uint32_t PORT, Message* message) {
     size_t i = 0;
     size_t j = 0;
     size_t timeout = 0; //really not a fan of doing timeouts like these... maybe we should use interrupts?
-    //wait this doesnt even work rip; UARTCharGet is blocking...
 
-    #define TIMEOUT_THRESHOLD 100 //not necessary, but might as well leave it in i guess
+    #define TIMEOUT_THRESHOLD 10000000 //not necessary, but might as well leave it in i guess
 
 
     //go through uart buffer until you find the magic header "0ops"
@@ -126,36 +147,54 @@ bool uart_read_message(const uint32_t PORT, Message* message) {
                 return false;
             }
         }
-        else if(uart_magic[j] != UARTCharGet(PORT)) {
-            timeout = 0;
-            j = 0;
-        }
+
         else {
-            timeout = 0;
-            j++;
+             uint8_t c = UARTCharGet(PORT);
+             #ifdef DEBUG
+                uart_send_raw(HOST_UART, &c, sizeof(c));
+            #endif
+
+            if(uart_magic[j] != c) {
+                timeout = 0;
+                j = 0;
+            }
+             else {
+                timeout = 0;
+                j++;
+            }
         }
     }
 
     timeout = 0;
 
+    #ifdef DEBUG
+    debug_print("Recieved Message: [");
+    #endif
+
     while(i < sizeof(Message)) {
 
         if(!UARTCharsAvail(PORT)) {
-            timeout++;
-            if(timeout > TIMEOUT_THRESHOLD) {
-                #ifdef DEBUG
-                debug_print("[d] timeout\n");
-                #endif
-                return false;
-            }
+            continue;
         }
-        else {
-            timeout = 0;
-            ((uint8_t*) message)[i] = UARTCharGet(PORT);
-            uart_send_raw(PORT, &((uint8_t*) message)[i], 1);
-            i++;
+
+        uint8_t c = UARTCharGetNonBlocking(PORT);
+
+        ((uint8_t*) message)[i] = c;
+
+        #ifdef DEBUG
+        uart_send_raw(HOST_UART, &c, sizeof(c));
+        #endif
+        
+        if(i % 8 == 0) {
+            UARTCharPut(PORT, 'A');
         }
+
+        i++;
     }
+
+    #ifdef DEBUG
+    debug_print("] END |");
+    #endif
 
     return true;
 }
@@ -169,6 +208,9 @@ void eeprom_init(void) {
 
     //if eeprom initialization fails, reset
     if(EEPROMInit() != EEPROM_INIT_OK) {
+        #ifdef DEBUG
+        debug_print("eeprom load failure\n");
+        #endif
         SysCtlReset();
     }
 }

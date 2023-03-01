@@ -5,6 +5,7 @@
         "gpio.h": "c",
         "stddef.h": "c",
         "uart.h": "c",
-        "pin_map.h": "c"
+        "pin_map.h": "c",
+        "stdint.h": "c"
     }
 }

@@ -29,44 +29,55 @@ def main():
     parser.add_argument("--paired", action="store_true")
     args = parser.parse_args()
 
-    print(args.secret_file)
+    print(args.paired)
 
     f = open(args.secret_file, "r")
-    factory_secrets = json.load(fp)
+    factory_secrets = json.load(f)
 
     dev_entropy = '{' + str([x for x in secrets.token_bytes(16)])[1:-1] + '}' #16 byte array
+    pair_sec    = '{' + str([x for x in bytes.fromhex(factory_secrets['car'+str(args.car_id)])])[1:-1] + '}'
+    fac_pub     = '{' + str([x for x in bytes.fromhex(factory_secrets['pubkey'])])[1:-1] + '}'
 
-    paired_secrets = f'''
-    #ifndef __FOB_SECRETS__
-    #define __FOB_SECRETS__
-    
-    #define PAIRED 1
-    #define SEC_PAIR_PIN {args.pair_pin}
-    #define SEC_CAR_ID {args.car_id}
-    #define SEC_PAIR_SECRET {factory_secrets['car'+args.car_id]}
-    #define SEC_FACTORY_PUB {factory_secrets['pubkey']}
-    #define SEC_FACTORY_ENTROPY {dev_entropy}
-
-    #endif
-    '''
-
+    paired_secrets = ''
 
     if args.paired:
 
-        # Write to header file
-        with open(args.header_file, "w") as fp:
-            fp.write(paired_secrets)
+        paired_secrets = f'''
+        #ifndef __FOB_SECRETS__
+        #define __FOB_SECRETS__
+        
+        #define PAIRED 1
+        #define SEC_PAIR_PIN {args.pair_pin}
+        #define SEC_CAR_ID {args.car_id}
+        #define SEC_PAIR_SECRET {pair_sec}
+        #define SEC_FACTORY_PUB {fac_pub}
+        #define SEC_FACTORY_ENTROPY {dev_entropy}
+
+        #endif
+        '''
+
     else:
+        paired_secrets = f'''
+        #ifndef __FOB_SECRETS__
+        #define __FOB_SECRETS__
+        
+        #define PAIRED 0
+        #define SEC_PAIR_PIN 0
+        #define SEC_CAR_ID 255
+        #define SEC_PAIR_SECRET {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
+        #define SEC_FACTORY_PUB {fac_pub}
+        #define SEC_FACTORY_ENTROPY {dev_entropy}
+
+        #endif
+        '''
+
+
+    print(paired_secrets)
+    print(args.header_file)
+
         # Write to header file
-        with open(args.header_file, "w") as fp:
-            fp.write("#ifndef __FOB_SECRETS__\n")
-            fp.write("#define __FOB_SECRETS__\n\n")
-            fp.write("#define PAIRED 0\n")
-            fp.write('#define PAIR_PIN "000000"\n')
-            fp.write('#define CAR_ID "000000"\n')
-            fp.write('#define CAR_SECRET "000000"\n\n')
-            fp.write('#define PASSWORD "unlock"\n\n')
-            fp.write("#endif\n")
+    with open(args.header_file, "w") as fp:
+            fp.write(paired_secrets)
 
 
 if __name__ == "__main__":

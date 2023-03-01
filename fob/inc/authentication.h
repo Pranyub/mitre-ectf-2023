@@ -2,7 +2,6 @@
 #define AUTH_H
 
 #define FOB_TARGET
-#define CAR_TARGET
 #define DEVICE_TYPE TO_P_FOB
 
 #include <stdint.h>

@@ -1,7 +1,7 @@
 /*
-/* General Utilities for Device firmware
-/* honestly this name is a bit misleading; it should be called datatypes.h
-*/
+ * General Utilities for Device firmware
+ * honestly this name is a bit misleading; it should be called datatypes.h
+ */
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -12,7 +12,7 @@
 #include <stddef.h>
 
 #define MESSAGE_HEADER_SIZE 83
-#define PAYLOAD_BUF_SIZE 512
+#define PAYLOAD_BUF_SIZE 408
 
 //message magics
 #define TO_CAR 0x63   //('c')
@@ -76,5 +76,5 @@ typedef struct {
     }                                  
 
 #define debug_print(string) \
-    uart_send_raw(HOST_UART, string, sizeof(string) - 1)
+    uart_send_raw(HOST_UART, (string), sizeof((string)) - 1)
 #endif
