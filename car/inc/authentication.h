@@ -14,12 +14,12 @@
 #include "util.h"
 
 //random should be stored on EEPROM so it may persist on reset
-#define EEPROM_RAND_ADDR 0x0000
+#define EEPROM_RAND_ADDR 0x200
 
 
 #ifdef FOB_TARGET
 
-#define EEPROM_SIG_ADDR 0x200
+#define EEPROM_SIG_ADDR 0x400
 
 #endif
 
