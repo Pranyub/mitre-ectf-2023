@@ -14,7 +14,7 @@ CFLAGSgcc=-DTARGET_IS_TM4C123_RB1
 ROOT=.
 
 # Uncomment to enable debug symbols
-DEBUG=1
+#DEBUG=1
 
 # additional base directories
 TIVA_ROOT=${ROOT}/lib/tivaware
@@ -111,6 +111,7 @@ ${COMPILER}:
 
 ${COMPILER}/firmware.axf: ${COMPILER}/uart.o
 ${COMPILER}/firmware.axf: ${COMPILER}/authentication.o
+${COMPILER}/firmware.axf: ${COMPILER}/fobstuff.o
 ${COMPILER}/firmware.axf: ${COMPILER}/firmware.o
 ${COMPILER}/firmware.axf: ${COMPILER}/startup_${COMPILER}.o
 ${COMPILER}/firmware.axf: ${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a
@@ -119,7 +120,7 @@ ${COMPILER}/firmware.axf: ${BEAR_ROOT}/samd20/libbearssl.a
 copy_artifacts:
 	cp ${COMPILER}/firmware.bin ${BIN_PATH}
 	cp ${COMPILER}/firmware.axf ${ELF_PATH}
-	cp ${SECRETS_DIR}/global_secrets.txt ${EEPROM_PATH}
+	echo "no secrets 4 u" > ${EEPROM_PATH}
 
 SCATTERgcc_firmware=${TIVA_ROOT}/firmware.ld
 ENTRY_firmware=Firmware_Startup

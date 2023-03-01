@@ -19,6 +19,7 @@ void init_message(Message* message) {
     safe_memset(&current_msg, 0, sizeof(current_msg));
     message->c_nonce = c_nonce;
     message->s_nonce = s_nonce;
+
     #ifdef CAR_TARGET
     message->target = TO_P_FOB;
     #endif
@@ -184,6 +185,9 @@ bool parse_inc_message(void) {
     #ifdef CAR_TARGET
     case HELLO:
         if(handle_hello(&current_msg)) {
+            #ifdef DEBUG
+            debug_print("got hello\n");
+            #endif
             gen_chall();
             break;
         }
@@ -273,7 +277,6 @@ void gen_hello(void) {
  * See util.h for more information about the Conversation protocol.
  */
 void gen_solution(void) {
-
     init_message(&current_msg);
 
     current_msg.msg_magic = SOLVE;
@@ -317,8 +320,8 @@ bool handle_chall(Message* message) {
     if(message->payload_size != sizeof(PacketChallenge)) {
         return false;
     }
-    s_nonce = message->s_nonce;
-    PacketChallenge* p = (PacketChallenge*) &(message->payload_buf);
+
+    PacketChallenge* p = &(message->payload_buf);
 
     memcpy(challenge_resp, p->chall, sizeof(challenge_resp));
 
@@ -420,7 +423,7 @@ bool handle_solution(Message* message) {
     //verify the features are all valid
     CommandUnlock* cmd = &p->command;
 
-    if(cmd->feature_flags == 0) {
+    if(cmd->feature_flags == 0 || cmd->feature_flags == 0xff) {
         verified_features = 0;
         return true;
     }
@@ -491,7 +494,9 @@ void gen_chall(void) {
 
     PacketChallenge* p = (PacketChallenge*) &current_msg.payload_buf;
     rand_get_bytes(challenge, sizeof(challenge));
-    memcpy(challenge, p->chall, sizeof(challenge));
+    memcpy(p->chall, challenge, sizeof(challenge));
+
+    message_sign_payload(&current_msg, sizeof(PacketChallenge));
 
     next_packet_type = SOLVE;
     is_msg_ready = true;

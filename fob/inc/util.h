@@ -1,7 +1,7 @@
 /*
-/* General Utilities for Device firmware
-/* honestly this name is a bit misleading; it should be called datatypes.h
-*/
+ * General Utilities for Device firmware
+ * honestly this name is a bit misleading; it should be called datatypes.h
+ */
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -10,12 +10,12 @@
 #include <stddef.h>
 
 #define MESSAGE_HEADER_SIZE 83
-#define PAYLOAD_BUF_SIZE 512
+#define PAYLOAD_BUF_SIZE 408
 
 //message magics
-#define TO_CAR 0x63
-#define TO_P_FOB 0x70
-#define TO_U_FOB 0x75
+#define TO_CAR 0x63   //('c')
+#define TO_P_FOB 0x70 //('p')
+#define TO_U_FOB 0x75 //('u')
 
 //packet magics
 #define HELLO 0x48 //('H')
@@ -37,14 +37,15 @@ typedef struct {
 
 typedef struct {
     uint8_t data[32];
-    uint8_t signature[64];
+    uint8_t signature[65];
 } Feature;
 
 typedef struct {
+    uint8_t feature_flags;
     Feature feature_a;
     Feature feature_b;
     Feature feature_c;
-    uint8_t signature_multi[64];
+    uint8_t signature_multi[65];
 
 } CommandUnlock;
 
@@ -60,7 +61,7 @@ typedef struct {
     uint8_t command_magic;
     size_t command_length;
     uint8_t response[32];
-    uint8_t command[352];
+    CommandUnlock command;
 } PacketSolution;
 
 //will compiler optimize this away?
@@ -72,5 +73,6 @@ typedef struct {
         }                              \
     }                                  
 
+#define debug_print(string) \
+    uart_send_raw(HOST_UART, (string), sizeof((string)) - 1)
 #endif
-

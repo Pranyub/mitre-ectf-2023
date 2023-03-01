@@ -8,11 +8,12 @@ Provides a wrapper for uart and eeprom access. Maybe should be called communicat
 
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include "util.h"
 
 //#define DEVICE_UART ((uint32_t)UART1_BASE)
-#define DEVICE_UART ((uint32_t)UART0_BASE)
+#define DEVICE_UART ((uint32_t)UART1_BASE)
 #define HOST_UART ((uint32_t)UART0_BASE)
 
 /**********************************************
@@ -36,6 +37,7 @@ Provides a wrapper for uart and eeprom access. Maybe should be called communicat
 
 /*********************************************/
 
+static const uint8_t uart_magic[] = "0ops"; //magic for sending packet
 
 //currently unused; just using a for loop
 #define UART_SEND_LONG(PORT, data) {\
@@ -58,7 +60,7 @@ void uart_send_message(const uint32_t PORT, Message* message);
 //send raw packet through UART interface. uart_init() must be called first
 void uart_send_raw(const uint32_t PORT, void* message, uint16_t size);
 
-void uart_read_message(const uint32_t PORT, Message* message);
+bool uart_read_message(const uint32_t PORT, Message* message);
 
 //initialize EEPROM
 void eeprom_init(void);

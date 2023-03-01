@@ -1,8 +1,8 @@
 #ifndef AUTH_H
 #define AUTH_H
 
-#define FOB_TARGET
-#define DEVICE_TYPE TO_P_FOB
+#define CAR_TARGET 1
+#define DEVICE_TYPE TO_CAR
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -48,7 +48,7 @@ static uint8_t factory_pub[] = SEC_FACTORY_PUB;
 //context for random number generator
 static br_hmac_drbg_context ctx_rand;
 static br_hmac_key_context ctx_hmac_key;
-static int is_random_set = 0; //bool to make sure random is set (unused)
+static uint32_t is_random_set = 0; //bool to make sure random is set (unused)
 
 /******************************************************************/
 /*         Variables to be used in conversation messaging         */

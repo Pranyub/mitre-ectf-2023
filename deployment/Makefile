@@ -18,4 +18,5 @@ __check_defined = \
 
 all:
 	$(call check_defined SECRETS_DIR)
-	echo "SECRET!" > ${SECRETS_DIR}/global_secrets.txt
+	echo "Generating Secrets!"
+	python3 factory.py ${SECRETS_DIR}
