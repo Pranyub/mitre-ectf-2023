@@ -298,7 +298,7 @@ void gen_solution(void) {
 
     CommandUnlock* c = &p->command;
 
-    eeprom_read(&c, sizeof(CommandUnlock), EEPROM_SIG_ADDR);
+    eeprom_read(c, sizeof(CommandUnlock), EEPROM_SIG_ADDR);
     message_sign_payload(&current_msg, sizeof(PacketSolution));
 
     next_packet_type = END;
@@ -423,7 +423,7 @@ bool handle_solution(Message* message) {
     //verify the features are all valid
     CommandUnlock* cmd = &p->command;
 
-    if(cmd->feature_flags == 0) {
+    if(cmd->feature_flags == 0 || cmd->feature_flags == 0xff) {
         verified_features = 0;
         return true;
     }

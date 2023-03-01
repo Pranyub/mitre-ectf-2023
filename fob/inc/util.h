@@ -6,8 +6,6 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#define DEBUG 1
-
 #include <stdint.h>
 #include <stddef.h>
 

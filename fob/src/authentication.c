@@ -273,6 +273,7 @@ void gen_hello(void) {
  * See util.h for more information about the Conversation protocol.
  */
 void gen_solution(void) {
+
     init_message(&current_msg);
 
     current_msg.msg_magic = SOLVE;
@@ -294,7 +295,7 @@ void gen_solution(void) {
 
     CommandUnlock* c = &p->command;
 
-    eeprom_read(&c, sizeof(CommandUnlock), EEPROM_SIG_ADDR);
+    eeprom_read(c, sizeof(CommandUnlock), EEPROM_SIG_ADDR);
     message_sign_payload(&current_msg, sizeof(PacketSolution));
 
     next_packet_type = END;
@@ -316,7 +317,7 @@ bool handle_chall(Message* message) {
     if(message->payload_size != sizeof(PacketChallenge)) {
         return false;
     }
-
+    s_nonce = message->s_nonce;
     PacketChallenge* p = (PacketChallenge*) &(message->payload_buf);
 
     memcpy(challenge_resp, p->chall, sizeof(challenge_resp));

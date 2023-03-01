@@ -58,6 +58,7 @@ int main(void) {
                 #ifdef DEBUG
                 debug_print("sending message\n");
                 #endif
+                send_next_message();
                 time_counter = 0;
             }
         }
