@@ -427,13 +427,24 @@ bool handle_solution(Message* message) {
         verified_features = 0;
         return true;
     }
+    #ifdef DEBUG
+    debug_print("IDs");
+    uart_send_raw(HOST_UART, &cmd->feature_a.data[0], sizeof(uint8_t));
+    uint8_t foo = CAR_ID;
+    uart_send_raw(HOST_UART, &foo, sizeof(foo));
+    
+    debug_print("data");
+    uart_send_raw(HOST_UART, &cmd->feature_a.data, sizeof(cmd->feature_a.data));
+    debug_print("signature");
+    uart_send_raw(HOST_UART, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+    #endif
 
     if(cmd->feature_flags & 0x01) {
         if(cmd->feature_a.data[0] != CAR_ID) {
             return false;
         }
     }
-
+    
     if(cmd->feature_flags & 0x02) {
         if(cmd->feature_b.data[0] != CAR_ID) {
             return false;
@@ -451,24 +462,56 @@ bool handle_solution(Message* message) {
     br_sha256_init(&ctx_sha_f);
     br_sha256_update(&ctx_sha_f, &cmd->feature_flags, sizeof(cmd->feature_flags));
 
+     #ifdef DEBUG
+        debug_print("FLAGS");
+        uart_send_raw(HOST_UART, &cmd->feature_flags, sizeof(cmd->feature_flags));
+    #endif
+
     br_sha256_update(&ctx_sha_f, &cmd->feature_a.data, sizeof(cmd->feature_a.data));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+    //br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+
+    #ifdef DEBUG
+        debug_print("FEAT A");
+        uart_send_raw(HOST_UART, &cmd->feature_a.data, sizeof(cmd->feature_a.data));
+    #endif
 
     br_sha256_update(&ctx_sha_f, &cmd->feature_b.data, sizeof(cmd->feature_b.data));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+    //br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
     
+    #ifdef DEBUG
+        debug_print("FEAT B");
+        uart_send_raw(HOST_UART, &cmd->feature_b.data, sizeof(cmd->feature_b.data));
+    #endif
+
     br_sha256_update(&ctx_sha_f, &cmd->feature_c.data, sizeof(cmd->feature_c.data));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+    //br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
+
+    #ifdef DEBUG
+        debug_print("FEAT C");
+        uart_send_raw(HOST_UART, &cmd->feature_c.data, sizeof(cmd->feature_c.data));
+    #endif
+
+    #ifdef DEBUG
+        debug_print("PUBKEY");
+        uart_send_raw(HOST_UART, factory_pub, sizeof(factory_pub));
+    #endif
+     #ifdef DEBUG
+        debug_print("PUBKEY");
+        uart_send_raw(HOST_UART, &cmd->signature_multi, sizeof(cmd->signature_multi));
+    #endif
 
     br_sha256_out(&ctx_sha_f, feat_hash);
-
+    
     br_ec_public_key pk;
-    pk.curve = BR_EC_brainpoolP256r1;
+    pk.curve = BR_EC_secp256r1;
     pk.q = factory_pub;
     pk.qlen = 65;
     uint32_t verification = br_ecdsa_i15_vrfy_raw(&br_ec_p256_m15, feat_hash, sizeof(feat_hash), &pk, &cmd->signature_multi, sizeof(cmd->signature_multi));
     
-    if(!verification) {
+    if(verification != 1) {
+        #ifdef DEBUG
+        debug_print("VERIFICATION FAILED");
+        #endif
         return false;
     }
 
@@ -583,7 +626,6 @@ void rand_init(void) {
     // Update rand with factory seed
     uint8_t e_factory[32] = FACTORY_ENTROPY;
     br_hmac_drbg_init(&ctx_rand, &br_sha256_vtable, e_factory, sizeof(e_factory));
-
     // Update rand with EEPROM seed
     uint8_t seed[SEED_SIZE];
     eeprom_read(seed, SEED_SIZE, EEPROM_RAND_ADDR);

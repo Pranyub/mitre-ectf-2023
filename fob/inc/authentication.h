@@ -100,6 +100,28 @@ void gen_solution(void);
 bool handle_chall(Message* message);
 bool handle_end(Message* message);
 
+
+
+
+
+#define UPLOAD_FEATURE 0x1a
+#define UPLOAD_SIG 0x2b
+#define PAIR_CMD 0x3c
+#define BOARD_PAIR 0x4d
+#define QUERY_FEATURES 0x5e
+
+typedef struct {
+    uint8_t data[200];
+} HostPacket;
+
+
+
+static bool paired = PAIRED;
+
+void handle_host_msg(void);
+void handle_upload_feature(uint8_t* packet);
+void handle_query_features(uint8_t* packet);
+void handle_upload_sig(uint8_t* packet);
 #endif
 
 

@@ -16,7 +16,7 @@ typedef struct {
 
 
 
-static bool paired = PAIRED
+static bool paired = PAIRED;
 
 void handle_host_msg(void);
 void handle_upload_feature(uint8_t* packet);

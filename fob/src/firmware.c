@@ -6,7 +6,6 @@
 #include "uart.h"
 #include "util.h"
 #include "authentication.h"
-#include "fobstuff.h"
 
 #define delay(counter) \
     for(size_t i = 0; i < counter; i++);

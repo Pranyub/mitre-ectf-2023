@@ -14,7 +14,8 @@
 
 import socket
 import argparse
-
+import json
+import sys
 
 # @brief Function to send commands to enable a feature on a fob
 # @param fob_bridge, bridged serial connection to fob
@@ -25,23 +26,38 @@ def enable(fob_bridge, package_name):
     fob_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     fob_sock.connect(("ectf-net", int(fob_bridge)))
 
-    # Send enable command to fob
-    fob_sock.send(b"enable\n")
-
     # Open and read binary data from package file
-    with open(f"/package_dir/{package_name}", "rb") as fhandle:
+    with open(f"/package_dir/{package_name}", "r") as fhandle:
         message = fhandle.read()
 
+    features = json.loads(message)
     # Send package to fob
-    fob_sock.send(message)
-
+    fob_sock.send(b'0ops\x1a' + bytes.fromhex(features['feature']) + b'A'*500)
     # Set timeout for if enable fails
     fob_sock.settimeout(5)
     # Try to receive data - if failed, enabling failed
     try:
-        enable_success = fob_sock.recv(7)
-        while len(enable_success) != 7:
-            enable_success += fob_sock.recv(7 - len(enable_success))
+
+        enable_success = fob_sock.recv(79)
+
+        while len(enable_success) != 79:
+            enable_success += fob_sock.recv(79 - len(enable_success))
+
+        enable_success = enable_success.lstrip(b'A')
+
+        fob_sock.send(b'0ops\x5e' + b'A' * 500)
+
+        feature_list = fob_sock.recv(70) 
+
+        while len(feature_list) != 70:
+            feature_list += fob_sock.recv(70 - len(feature_list))
+
+        feature_list = feature_list.lstrip('A')
+
+       
+        curr_features = fob_sock.recv(1)[0]
+
+        fob_sock.send(b'0ops\x2b' + bytes.fromhex(features['sigs'][str(curr_features)]) + b'A' * 500)
 
         print(enable_success)
     except socket.timeout:
@@ -55,6 +71,11 @@ def enable(fob_bridge, package_name):
 # Main function handles parsing arguments and passing them to program
 # function.
 def main():
+
+    print('start', file=sys.stderr)
+    sys.stderr.flush()
+    exit()
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--fob-bridge", help="Bridge for the fob", type=int, required=True,
@@ -63,7 +84,7 @@ def main():
         "--package-name", help="Name of the package file", type=str, required=True,
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args() 
 
     enable(args.fob_bridge, args.package_name)
 
