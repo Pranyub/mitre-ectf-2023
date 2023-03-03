@@ -16,14 +16,23 @@ int main(void) {
     uart_init();
     rand_init();
     
-    bool first_boot;
-    eeprom_read(&first_boot, sizeof(bool), EEPROM_FIRST_BOOT_FLAG);
+    uint8_t first_boot_flag[10];
+    eeprom_read(first_boot_flag, 10, EEPROM_FIRST_BOOT_FLAG);
 
-    if(first_boot) {
-        first_boot = false;
-        eeprom_write(&first_boot, sizeof(bool), EEPROM_FIRST_BOOT_FLAG);
-        
+    if(first_boot_flag[0] != 'F') {
+        first_boot_flag[0] = 'F';
+        eeprom_write("FFFFFFFFFFFF", 12, EEPROM_FIRST_BOOT_FLAG);
+
+        uint8_t test[10];
+        eeprom_read(test, 10, EEPROM_FIRST_BOOT_FLAG);
+
+        #ifdef DEBUG
+        debug_print("first boot");
+        #endif
+        first_boot();
     }
+
+    secrets_init();
 
     // Setup SW1
     GPIOPinTypeGPIOInput(GPIO_PORTF_BASE, GPIO_PIN_4);
@@ -50,14 +59,23 @@ int main(void) {
         if(curr_sw_state != prev_sw_state && curr_sw_state != 0) {
             delay(1000);
             if(GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_4) == curr_sw_state) {
-                // On button press
+                
+                if(get_dev_type() != TO_P_FOB) {
+                    #ifdef DEBUG
+                    debug_print("not a paired fob");
+                    #endif
+                }
+                else {
+                     // On button press
                 #ifdef DEBUG
                 debug_print("button press\n");
                 #endif
                 start_unlock_sequence();
+                }
             } 
         }
         prev_sw_state = curr_sw_state;
+
         /******************************************************************/
         if(UARTCharsAvail(DEVICE_UART)) {
             #ifdef DEBUG

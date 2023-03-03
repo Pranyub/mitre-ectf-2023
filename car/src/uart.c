@@ -70,14 +70,7 @@ void uart_init(void) {
  */
 void uart_send_message(const uint32_t PORT, Message* message) {
 
-    for(size_t i = 0; i < 300; i++) {
-        UARTCharPut(PORT, (uint8_t)i);
-    }
-
     for(size_t i = 0; i < 4; i++) {
-        #ifdef DEBUG
-        UARTCharPut(HOST_UART, uart_magic[i]);
-        #endif
         UARTCharPut(PORT, uart_magic[i]);
     }
 
@@ -108,12 +101,17 @@ void uart_send_message(const uint32_t PORT, Message* message) {
  * @param message the buffer to send
  * @param size the number of bytes to send
  */
-void uart_send_raw(const uint32_t PORT, void* message, uint16_t size) {
+void uart_send_raw(const uint32_t PORT, void* message, size_t size) {
     for(size_t i = 0; i < size; i++) {
         UARTCharPut(PORT, ((uint8_t*) message)[i]);
     }
 }
 
+void uart_read_raw(const uint32_t PORT, void* message, size_t size) {
+    for(size_t i = 0; i < size; i++) {
+        ((uint8_t*) message)[i] = UARTCharGet(PORT);
+    }
+}
 
 //Possible error: apparently uart buffer size is only 16 bytes
 /**
@@ -132,7 +130,7 @@ bool uart_read_message(const uint32_t PORT, Message* message) {
     size_t j = 0;
     size_t timeout = 0; //really not a fan of doing timeouts like these... maybe we should use interrupts?
 
-    #define TIMEOUT_THRESHOLD 10000000 //not necessary, but might as well leave it in i guess
+    #define TIMEOUT_THRESHOLD 100000 //not necessary, but might as well leave it in i guess
 
 
     //go through uart buffer until you find the magic header "0ops"

@@ -70,14 +70,7 @@ void uart_init(void) {
  */
 void uart_send_message(const uint32_t PORT, Message* message) {
 
-    for(size_t i = 0; i < 300; i++) {
-        UARTCharPut(PORT, (uint8_t)i);
-    }
-
     for(size_t i = 0; i < 4; i++) {
-        #ifdef DEBUG
-        UARTCharPut(HOST_UART, uart_magic[i]);
-        #endif
         UARTCharPut(PORT, uart_magic[i]);
     }
 
@@ -193,7 +186,7 @@ bool uart_read_message(const uint32_t PORT, Message* message) {
         if(i % 8 == 0) {
             UARTCharPut(PORT, 'A');
         }
-        
+
         i++;
     }
 

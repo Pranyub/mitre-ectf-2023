@@ -16,6 +16,23 @@ int main(void) {
     uart_init();
     rand_init();
     
+    uint8_t first_boot_flag[10];
+    eeprom_read(first_boot_flag, 10, EEPROM_FIRST_BOOT_FLAG);
+
+    if(first_boot_flag[0] != 'F') {
+        first_boot_flag[0] = 'F';
+        eeprom_write("FFFFFFFFFFFF", 12, EEPROM_FIRST_BOOT_FLAG);
+
+        uint8_t test[10];
+        eeprom_read(test, 10, EEPROM_FIRST_BOOT_FLAG);
+
+        #ifdef DEBUG
+        debug_print("first boot");
+        #endif
+        first_boot();
+    }
+
+    secrets_init();
     
     volatile unsigned long long time_counter = 0;
     #define TIMER_THRESHOLD 1000
@@ -43,11 +60,4 @@ int main(void) {
             }
         }
     }
-}
-
-void startCar(void){
-    uint8_t* payload = "Unlocking car!";
-    Message m = {2, 14, 0, 0 payload}
-    for(int i=0; i <1000000; i++){}
-    uart_send_message(HOST_UART, &m);
-}  
+} 
