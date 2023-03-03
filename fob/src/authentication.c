@@ -43,7 +43,7 @@ void init_message(Message* message) {
 bool verify_message(Message* message) {
 
     // Ensure message is going to the correct device type
-    if(message->target != DEVICE_TYPE) {
+    if(message->target != dev_secrets.device_type) {
 
         #ifdef DEBUG
         debug_print("bad target: ");
@@ -286,7 +286,7 @@ void gen_solution(void) {
     br_sha256_init(&ctx_sha2);
     br_sha256_update(&ctx_sha2, challenge, sizeof(challenge));
     br_sha256_update(&ctx_sha2, challenge_resp, sizeof(challenge_resp));
-    br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
+    br_sha256_update(&ctx_sha2, dev_secrets.car_secret, sizeof(dev_secrets.car_secret));
     br_sha256_update(&ctx_sha2, &c_nonce, sizeof(c_nonce));
     br_sha256_update(&ctx_sha2, &s_nonce, sizeof(s_nonce));
     br_sha256_out(&ctx_sha2, p->response);
@@ -406,7 +406,7 @@ bool handle_solution(Message* message) {
     br_sha256_init(&ctx_sha2);
     br_sha256_update(&ctx_sha2, challenge, sizeof(challenge));
     br_sha256_update(&ctx_sha2, challenge_resp, sizeof(challenge_resp));
-    br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
+    br_sha256_update(&ctx_sha2, dev_secrets.car_secret, sizeof(dev_secrets.car_secret));
     br_sha256_update(&ctx_sha2, &c_nonce, sizeof(c_nonce));
     br_sha256_update(&ctx_sha2, &s_nonce, sizeof(s_nonce));
     br_sha256_out(&ctx_sha2, auth_hash);
@@ -424,19 +424,19 @@ bool handle_solution(Message* message) {
     }
 
     if(cmd->feature_flags & 0x01) {
-        if(cmd->feature_a.data[0] != CAR_ID) {
+        if(cmd->feature_a.data[0] != dev_secrets.car_id) {
             return false;
         }
     }
 
     if(cmd->feature_flags & 0x02) {
-        if(cmd->feature_b.data[0] != CAR_ID) {
+        if(cmd->feature_b.data[0] != dev_secrets.car_id) {
             return false;
         }
     }
 
     if(cmd->feature_flags & 0x04) {
-        if(cmd->feature_c.data[0] != CAR_ID) {
+        if(cmd->feature_c.data[0] != dev_secrets.car_id) {
             return false;
         }
     }
@@ -600,8 +600,27 @@ void rand_init(void) {
     is_random_set = 1;
 
     //also init hmac while we're at it
-    br_hmac_key_init(&ctx_hmac_key, &br_sha256_vtable, car_secret, sizeof(car_secret));
+    br_hmac_key_init(&ctx_hmac_key, &br_sha256_vtable, dev_secrets.car_secret, sizeof(dev_secrets.car_secret));
 
+}
+
+void first_boot(void) {
+    dev_secrets.car_secret = CAR_SECRET;
+    dev_secrets.pair_pin = PAIR_PIN;
+    dev_secrets.car_id = CAR_ID;
+
+    if(PAIRED) {
+        dev_secrets.device_type = TO_P_FOB;
+    }
+    else {
+        dev_secrets.device_type = TO_U_FOB;
+    }
+
+    eeprom_write(&dev_secrets, sizeof(Secrets), EEPROM_SECRETS_ADDR)
+}
+
+void secrets_init(void) {
+    eeprom_read(&dev_secrets, sizeof(Secrets), EEPROM_SECRETS_ADDR);
 }
 
 
@@ -651,7 +670,7 @@ void handle_query_features(uint8_t* packet) {
 
 void handle_upload_feature(uint8_t* packet) {
 
-    if(packet[1] != CAR_ID || packet[2] > 2) {
+    if(packet[1] != dev_secrets.car_id || packet[2] > 2) {
         return;
     }
 

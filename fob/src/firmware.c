@@ -16,6 +16,15 @@ int main(void) {
     uart_init();
     rand_init();
     
+    bool first_boot;
+    eeprom_read(&first_boot, sizeof(bool), EEPROM_FIRST_BOOT_FLAG);
+
+    if(first_boot) {
+        first_boot = false;
+        eeprom_write(&first_boot, sizeof(bool), EEPROM_FIRST_BOOT_FLAG);
+        
+    }
+
     // Setup SW1
     GPIOPinTypeGPIOInput(GPIO_PORTF_BASE, GPIO_PIN_4);
     GPIOPadConfigSet(GPIO_PORTF_BASE, GPIO_PIN_4, GPIO_STRENGTH_4MA,
