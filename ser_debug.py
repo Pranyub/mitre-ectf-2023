@@ -23,9 +23,23 @@ def get_pkts_hex(f):
     out = get_pkts(f)
     return [x.hex() for x in out]
 
+import json
+
 def get_sent_pkts(f):
     out = []
     while f.find(b'send!\n0ops') != -1:
         f = f[f.index(b'Recieved Message: ') + 12:]
         out.append(f[:472])
     return out
+
+def get_pkg():
+    f = open('packageout/pak1', 'r').read()
+    m = json.loads(f)
+    return m
+
+m = get_pkg()
+
+feat = (b'\x1a' + bytes.fromhex(m['feature'])).ljust(128)
+sig = (b'\x2b' + bytes.fromhex(m['sigs']['1'])).ljust(128)
+
+#query = b'\x5e'

@@ -16,7 +16,6 @@
 //random should be stored on EEPROM so it may persist on reset
 #define EEPROM_RAND_ADDR 0x0000
 
-
 #ifdef FOB_TARGET
 
 #define EEPROM_SIG_ADDR 0x200
@@ -41,9 +40,12 @@
 #define FACTORY_ENTROPY SEC_FACTORY_ENTROPY
 #define PAIR_PIN SEC_PAIR_PIN
 #define CAR_ID SEC_CAR_ID
-static uint8_t car_secret[] = SEC_PAIR_SECRET; //is there a better way to do this? naaahhhh :D
-static uint8_t factory_pub[] = SEC_FACTORY_PUB;
+#define CAR_SECRET SEC_PAIR_SECRET; //is there a better way to do this? naaahhhh :D
+const static uint8_t factory_pub[] = SEC_FACTORY_PUB;
 
+#define EEPROM_FIRST_BOOT_FLAG 0x100
+#define EEPROM_SECRETS_ADDR 0x110
+static Secrets dev_secrets;
 
 //context for random number generator
 static br_hmac_drbg_context ctx_rand;
@@ -85,6 +87,9 @@ bool verify_message(Message* message);
 
 void rand_init(void);
 void rand_get_bytes(void* out, size_t len);
+
+void first_boot(void);
+void secrets_init(void);
 /******************************************************************/
 
 
@@ -100,6 +105,28 @@ void gen_solution(void);
 bool handle_chall(Message* message);
 bool handle_end(Message* message);
 
+
+
+
+
+#define UPLOAD_FEATURE 0x1a
+#define UPLOAD_SIG 0x2b
+#define PAIR_CMD 0x3c
+#define BOARD_PAIR 0x4d
+#define QUERY_FEATURES 0x5e
+
+typedef struct {
+    uint8_t data[200];
+} HostPacket;
+
+
+
+static bool paired = PAIRED;
+
+void handle_host_msg(void);
+void handle_upload_feature(uint8_t* packet);
+void handle_query_features(uint8_t* packet);
+void handle_upload_sig(uint8_t* packet);
 #endif
 
 

@@ -34,8 +34,10 @@ def main():
     f = open(args.secret_file, "r")
     factory_secrets = json.load(f)
 
+    car = factory_secrets['car'+str(args.car_id)]
+
     dev_entropy = '{' + str([x for x in secrets.token_bytes(16)])[1:-1] + '}' #16 byte array
-    pair_sec    = '{' + str([x for x in bytes.fromhex(factory_secrets['car'+str(args.car_id)])])[1:-1] + '}'
+    pair_sec    = '{' + str([x for x in bytes.fromhex(car['shared_key'])])[1:-1] + '}'
     fac_pub     = '{' + str([x for x in bytes.fromhex(factory_secrets['pubkey'])])[1:-1] + '}'
 
     paired_secrets = ''

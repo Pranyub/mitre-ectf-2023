@@ -43,7 +43,7 @@ void init_message(Message* message) {
 bool verify_message(Message* message) {
 
     // Ensure message is going to the correct device type
-    if(message->target != DEVICE_TYPE) {
+    if(message->target != dev_secrets.device_type) {
 
         #ifdef DEBUG
         debug_print("bad target: ");
@@ -286,16 +286,14 @@ void gen_solution(void) {
     br_sha256_init(&ctx_sha2);
     br_sha256_update(&ctx_sha2, challenge, sizeof(challenge));
     br_sha256_update(&ctx_sha2, challenge_resp, sizeof(challenge_resp));
-    br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
+    br_sha256_update(&ctx_sha2, dev_secrets.car_secret, sizeof(dev_secrets.car_secret));
     br_sha256_update(&ctx_sha2, &c_nonce, sizeof(c_nonce));
     br_sha256_update(&ctx_sha2, &s_nonce, sizeof(s_nonce));
     br_sha256_out(&ctx_sha2, p->response);
 
     p->command_magic = UNLOCK_MGK;    
 
-    CommandUnlock* c = &p->command;
-
-    eeprom_read(c, sizeof(CommandUnlock), EEPROM_SIG_ADDR);
+    eeprom_read(&p->command, sizeof(CommandUnlock) + 10, EEPROM_SIG_ADDR);
     message_sign_payload(&current_msg, sizeof(PacketSolution));
 
     next_packet_type = END;
@@ -408,7 +406,7 @@ bool handle_solution(Message* message) {
     br_sha256_init(&ctx_sha2);
     br_sha256_update(&ctx_sha2, challenge, sizeof(challenge));
     br_sha256_update(&ctx_sha2, challenge_resp, sizeof(challenge_resp));
-    br_sha256_update(&ctx_sha2, car_secret, sizeof(car_secret));
+    br_sha256_update(&ctx_sha2, dev_secrets.car_secret, sizeof(dev_secrets.car_secret));
     br_sha256_update(&ctx_sha2, &c_nonce, sizeof(c_nonce));
     br_sha256_update(&ctx_sha2, &s_nonce, sizeof(s_nonce));
     br_sha256_out(&ctx_sha2, auth_hash);
@@ -426,19 +424,19 @@ bool handle_solution(Message* message) {
     }
 
     if(cmd->feature_flags & 0x01) {
-        if(cmd->feature_a.data[0] != CAR_ID) {
+        if(cmd->feature_a.data[0] != dev_secrets.car_id) {
             return false;
         }
     }
 
     if(cmd->feature_flags & 0x02) {
-        if(cmd->feature_b.data[0] != CAR_ID) {
+        if(cmd->feature_b.data[0] != dev_secrets.car_id) {
             return false;
         }
     }
 
     if(cmd->feature_flags & 0x04) {
-        if(cmd->feature_c.data[0] != CAR_ID) {
+        if(cmd->feature_c.data[0] != dev_secrets.car_id) {
             return false;
         }
     }
@@ -460,7 +458,7 @@ bool handle_solution(Message* message) {
     br_sha256_out(&ctx_sha_f, feat_hash);
 
     br_ec_public_key pk;
-    pk.curve = BR_EC_brainpoolP256r1;
+    pk.curve = BR_EC_secp256r1;
     pk.q = factory_pub;
     pk.qlen = 65;
     uint32_t verification = br_ecdsa_i15_vrfy_raw(&br_ec_p256_m15, feat_hash, sizeof(feat_hash), &pk, &cmd->signature_multi, sizeof(cmd->signature_multi));
@@ -602,8 +600,27 @@ void rand_init(void) {
     is_random_set = 1;
 
     //also init hmac while we're at it
-    br_hmac_key_init(&ctx_hmac_key, &br_sha256_vtable, car_secret, sizeof(car_secret));
+    br_hmac_key_init(&ctx_hmac_key, &br_sha256_vtable, dev_secrets.car_secret, sizeof(dev_secrets.car_secret));
 
+}
+
+void first_boot(void) {
+    dev_secrets.car_secret = CAR_SECRET;
+    dev_secrets.pair_pin = PAIR_PIN;
+    dev_secrets.car_id = CAR_ID;
+
+    if(PAIRED) {
+        dev_secrets.device_type = TO_P_FOB;
+    }
+    else {
+        dev_secrets.device_type = TO_U_FOB;
+    }
+
+    eeprom_write(&dev_secrets, sizeof(Secrets), EEPROM_SECRETS_ADDR)
+}
+
+void secrets_init(void) {
+    eeprom_read(&dev_secrets, sizeof(Secrets), EEPROM_SECRETS_ADDR);
 }
 
 
@@ -616,3 +633,103 @@ void rand_init(void) {
 void rand_get_bytes(void* out, size_t len) {
     br_hmac_drbg_generate(&ctx_rand, out, len);
 }
+
+
+#define FOB_TARGET
+
+#ifdef FOB_TARGET
+
+
+void handle_host_msg(void) {
+
+    uint8_t packet[128];
+
+    uart_read_raw(HOST_UART, packet, sizeof(packet));
+
+    if(packet[0] == QUERY_FEATURES) {
+        handle_query_features(packet);
+    }
+
+    else if(packet[0] == UPLOAD_FEATURE) {
+        handle_upload_feature(packet);
+    }
+
+    else if(packet[0] == UPLOAD_SIG) {
+        handle_upload_sig(packet);
+    }
+
+}
+
+void handle_query_features(uint8_t* packet) {
+
+    CommandUnlock c;
+    eeprom_read(&c, sizeof(c), EEPROM_SIG_ADDR);
+    uart_send_raw(HOST_UART, "features: ", 10);
+    uart_send_raw(HOST_UART, &c.feature_flags, sizeof(c.feature_flags));
+}
+
+void handle_upload_feature(uint8_t* packet) {
+
+    if(packet[1] != dev_secrets.car_id || packet[2] > 2) {
+        return;
+    }
+
+    uint8_t hash[32];
+    br_sha256_context ctx_sha;
+    br_sha256_init(&ctx_sha);
+    br_sha256_update(&ctx_sha, &packet[1], 32);
+    br_sha256_out(&ctx_sha, hash);
+
+    br_ec_public_key pk;
+    pk.curve = BR_EC_secp256r1;
+    pk.q = factory_pub;
+    pk.qlen = 65;
+
+    uint32_t verification = br_ecdsa_i15_vrfy_raw(&br_ec_p256_m15, hash, sizeof(hash), &pk, &packet[33], 64);
+
+    if(verification != 1) {
+        return;
+    }
+
+    CommandUnlock c;
+    eeprom_read(&c, sizeof(c), EEPROM_SIG_ADDR);
+
+    if(c.feature_flags == 0xff) {
+        c.feature_flags = 0;
+    }
+
+    if(packet[2] == 0) {
+        c.feature_flags |= 0x01;
+        memcpy(c.feature_a.data, &packet[1], 32 * sizeof(uint8_t));
+        memcpy(c.feature_a.signature, &packet[33], 64 * sizeof(uint8_t));
+    }
+    else if(packet[2] == 1) {
+        c.feature_flags |= 0x02;
+        memcpy(c.feature_b.data, &packet[1], 32);
+        memcpy(c.feature_b.signature, &packet[33], 64);
+    }
+    else if(packet[2] == 2) {
+        c.feature_flags |= 0x04;
+        memcpy(c.feature_c.data, &packet[1], 32);
+        memcpy(c.feature_c.signature, &packet[33], 64);
+    }
+
+    uart_send_raw(HOST_UART, "feature add success!", 20);
+
+    eeprom_write(&c, sizeof(c), EEPROM_SIG_ADDR);
+}
+
+//unsanitized write; what can go wrong? :D
+void handle_upload_sig(uint8_t* packet) {
+
+    CommandUnlock c;
+    eeprom_read(&c, sizeof(c), EEPROM_SIG_ADDR);
+    memcpy(&c.signature_multi, packet + 1, sizeof(c.signature_multi));
+    eeprom_write(&c, sizeof(c) + 10, EEPROM_SIG_ADDR);
+    //eeprom_write(packet + 1, 64, EEPROM_SIG_ADDR + offsetof(CommandUnlock, signature_multi)); ??? doesnt work (always off by one)
+    #ifdef DEBUG
+    uart_send_raw(HOST_UART, &c, sizeof(c));
+    #endif
+}
+
+#endif

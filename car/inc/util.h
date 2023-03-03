@@ -37,7 +37,7 @@ typedef struct {
 
 typedef struct {
     uint8_t data[32];
-    uint8_t signature[65];
+    uint8_t signature[64];
 } Feature;
 
 typedef struct {
@@ -45,7 +45,7 @@ typedef struct {
     Feature feature_a;
     Feature feature_b;
     Feature feature_c;
-    uint8_t signature_multi[65];
+    uint8_t signature_multi[64];
 
 } CommandUnlock;
 

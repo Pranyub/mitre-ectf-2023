@@ -14,7 +14,7 @@ CFLAGSgcc=-DTARGET_IS_TM4C123_RB1
 ROOT=.
 
 # Uncomment to enable debug symbols
-#DEBUG=1
+DEBUG=1
 
 # additional base directories
 TIVA_ROOT=${ROOT}/lib/tivaware
@@ -111,7 +111,7 @@ ${COMPILER}:
 
 ${COMPILER}/firmware.axf: ${COMPILER}/uart.o
 ${COMPILER}/firmware.axf: ${COMPILER}/authentication.o
-${COMPILER}/firmware.axf: ${COMPILER}/fobstuff.o
+# ${COMPILER}/firmware.axf: ${COMPILER}/fobstuff.o
 ${COMPILER}/firmware.axf: ${COMPILER}/firmware.o
 ${COMPILER}/firmware.axf: ${COMPILER}/startup_${COMPILER}.o
 ${COMPILER}/firmware.axf: ${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a

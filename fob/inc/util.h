@@ -37,7 +37,7 @@ typedef struct {
 
 typedef struct {
     uint8_t data[32];
-    uint8_t signature[65];
+    uint8_t signature[64];
 } Feature;
 
 typedef struct {
@@ -45,7 +45,7 @@ typedef struct {
     Feature feature_a;
     Feature feature_b;
     Feature feature_c;
-    uint8_t signature_multi[65];
+    uint8_t signature_multi[64];
 
 } CommandUnlock;
 
@@ -63,6 +63,16 @@ typedef struct {
     uint8_t response[32];
     CommandUnlock command;
 } PacketSolution;
+
+typedef struct {
+    uint8_t car_secret[32];
+    uint32_t pair_pin;
+    //uint8_t padding_a[2];
+    uint8_t car_id;
+    //uint8_t padding_b[3]
+    bool device_type;
+    //uint8_t padding_c[3]
+} Secrets;
 
 //will compiler optimize this away?
 //also isnt this just memset lol
