@@ -46,7 +46,7 @@ def gen_signatures(factory_secrets, car_id):
 
     features = []
     for x in range(3):
-        features.append(gen_individual_feature(factory_secrets, car_id, x))
+        features.append(gen_individual_feature(factory_secrets, car_id, x + 1))
 
     for enabled_features in range(1, 0b1000):
 
@@ -89,7 +89,7 @@ def package(package_name, car_id, feature_number):
 
     # Pad id lenth to 8 bytes
     car_id = int(car_id) & 0xff
-    feature_number = (int(feature_number) & 0xff) % 3 # we only support 3 features :/
+    feature_number = (int(feature_number) & 0xff)
 
     s = open('/secrets/car_secrets.json', "r")
     factory_secrets = json.load(s)

@@ -530,7 +530,7 @@ void gen_end(void) {
     }
 
     if(verified_features & 0x04) {
-        eeprom_read(unlock_msg, sizeof(unlock_msg), EEPROM_FEAT_B_ADDR);
+        eeprom_read(unlock_msg, sizeof(unlock_msg), EEPROM_FEAT_C_ADDR);
         uart_send_raw(HOST_UART, unlock_msg, sizeof(unlock_msg));
     }
 

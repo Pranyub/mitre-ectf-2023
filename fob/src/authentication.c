@@ -701,7 +701,7 @@ void handle_query_features(uint8_t* packet) {
 
 void handle_upload_feature(uint8_t* packet) {
 
-    if(packet[1] != dev_secrets.car_id || packet[2] > 2) {
+    if(packet[1] != dev_secrets.car_id) {
         return;
     }
 
