@@ -13,6 +13,72 @@
 # @copyright Copyright (c) 2023 The MITRE Corporation
 
 import argparse
+import json
+import random
+from Crypto.Random import get_random_bytes
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import ECC
+from Crypto.Signature import DSS
+
+
+def gen_individual_feature(factory_secrets, car_id, feature_number):
+    
+    ecc_key = ECC.import_key(bytes.fromhex(factory_secrets['privkey']))
+    feature_seed = bytes.fromhex(factory_secrets['car' + str(car_id)]['feature_seed'])
+
+    random.seed(0)
+
+    data = car_id.to_bytes(1, 'little') + feature_number.to_bytes(1, 'little') + random.randbytes(30)
+
+    h = SHA256.new(data)
+    signer = DSS.new(ecc_key, 'fips-186-3')
+    signature = signer.sign(h)
+
+    # Create package to match defined structure on fob
+    return (data, signature)
+
+
+def gen_signatures(factory_secrets, car_id):
+
+    sigs = {}
+
+    ecc_key = ECC.import_key(bytes.fromhex(factory_secrets['privkey']))
+
+    features = []
+    for x in range(3):
+        features.append(gen_individual_feature(factory_secrets, car_id, x))
+
+    for enabled_features in range(1, 0b1000):
+
+        h = SHA256.new(enabled_features.to_bytes(1, 'little'))
+
+        if enabled_features & 0x01:
+            h.update(features[0][0])
+            #h.update(features[0][1])
+        else:
+            h.update(b'\xff'*32)
+            #h.update(b'\xff'*64)
+
+        if enabled_features & 0x02:
+            h.update(features[1][0])
+            #h.update(features[1][1])
+        else:
+            h.update(b'\xff'*32)
+            #h.update(b'\xff'*64)
+        
+        if enabled_features & 0x04:
+            h.update(features[2][0])
+            #h.update(features[2][1])
+        else:
+            h.update(b'\xff'*32)
+            #h.update(b'\xff'*64)
+        
+        signer = DSS.new(ecc_key, 'fips-186-3')
+        sigs[enabled_features] = signer.sign(h).hex()
+    
+    return sigs
+
+
 
 
 # @brief Function to create a new feature package
@@ -22,20 +88,21 @@ import argparse
 def package(package_name, car_id, feature_number):
 
     # Pad id lenth to 8 bytes
-    car_id_len = len(car_id)
-    car_id_pad = (8 - car_id_len) * "\0"
+    car_id = int(car_id) & 0xff
+    feature_number = (int(feature_number) & 0xff) % 3 # we only support 3 features :/
 
-    # Create package to match defined structure on fob
-    package_message_bytes = (
-        str.encode(car_id + car_id_pad)
-        + feature_number.to_bytes(1, "little")
-        + str.encode("\n")
-    )
+    s = open('/secrets/car_secrets.json', "r")
+    factory_secrets = json.load(s)
+
+    message_out = {
+        'feature': b''.join(x for x in gen_individual_feature(factory_secrets, car_id, feature_number)).hex(),
+        'sigs': gen_signatures(factory_secrets, car_id)
+    }
 
     # Write data out to package file
     # /package_dir/ is the mounted location inside the container - should not change
-    with open(f"/package_dir/{package_name}", "wb") as fhandle:
-        fhandle.write(package_message_bytes)
+    with open(f"/package_dir/{package_name}", "w") as fhandle:
+        fhandle.write(json.dumps(message_out))
 
     print("Feature packaged")
 

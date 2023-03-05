@@ -3,6 +3,9 @@
         "bearssl_rand.h": "c",
         "stdbool.h": "c",
         "gpio.h": "c",
-        "stddef.h": "c"
+        "stddef.h": "c",
+        "uart.h": "c",
+        "pin_map.h": "c",
+        "stdint.h": "c"
     }
 }

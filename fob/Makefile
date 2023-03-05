@@ -14,7 +14,7 @@ CFLAGSgcc=-DTARGET_IS_TM4C123_RB1
 ROOT=.
 
 # Uncomment to enable debug symbols
-DEBUG=1
+#DEBUG=1
 
 # additional base directories
 TIVA_ROOT=${ROOT}/lib/tivaware
@@ -22,10 +22,12 @@ BEAR_ROOT=${ROOT}/lib/BearSSL
 # add additional directories to search for source files to VPATH
 VPATH=${ROOT}/src
 VPATH+=${TIVA_ROOT}
+VPATH+=${BEAR_ROOT}
 
 # add additional directories to search for header files to IPATH
 IPATH=${ROOT}/inc
 IPATH+=${TIVA_ROOT}
+IPATH+=${BEAR_ROOT}
 
 # Include common makedefs
 include ${TIVA_ROOT}/makedefs
@@ -85,32 +87,6 @@ unpaired_fob: ${COMPILER}/firmware.axf
 unpaired_fob: copy_artifacts
 
 
-################ start crypto example ################
-# example AES rules to build in tiny-AES-c: https://github.com/kokke/tiny-AES-c
-# make sure submodule has been pulled (run `git submodule update --init`)
-# uncomment next line to activate
-# EXAMPLE_AES=foo
-ifdef EXAMPLE_AES
-# path to crypto library
-CRYPTOPATH=${ROOT}/lib/BearSSL
-
-# add path to crypto source files to source path
-VPATH+=${CRYPTOPATH}
-
-# add crypto library to includes path
-IPATH+=${CRYPTOPATH}
-
-# add crypto object file to includes path
-# LDFLAGS+=${COMPILER}/aes.o
-
-# add compiler flag to enable example AES code 
-CFLAGS+=-DEXAMPLE_AES
-
-# add rule to build crypto library
-${COMPILER}/firmware.axf: ${COMPILER}/aes.o
-endif
-################ end crypto example ################
-
 
 # build libraries
 ${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a:
@@ -134,7 +110,8 @@ ${COMPILER}:
 # for each source file that needs to be compiled besides the file that defines `main`
 
 ${COMPILER}/firmware.axf: ${COMPILER}/uart.o
-#${COMPILER}/firmware.axf: ${COMPILER}/board_link.o
+${COMPILER}/firmware.axf: ${COMPILER}/authentication.o
+# ${COMPILER}/firmware.axf: ${COMPILER}/fobstuff.o
 ${COMPILER}/firmware.axf: ${COMPILER}/firmware.o
 ${COMPILER}/firmware.axf: ${COMPILER}/startup_${COMPILER}.o
 ${COMPILER}/firmware.axf: ${TIVA_ROOT}/driverlib/${COMPILER}/libdriver.a
@@ -143,7 +120,7 @@ ${COMPILER}/firmware.axf: ${BEAR_ROOT}/samd20/libbearssl.a
 copy_artifacts:
 	cp ${COMPILER}/firmware.bin ${BIN_PATH}
 	cp ${COMPILER}/firmware.axf ${ELF_PATH}
-	cp ${SECRETS_DIR}/global_secrets.txt ${EEPROM_PATH}
+	echo "no secrets 4 u" > ${EEPROM_PATH}
 
 SCATTERgcc_firmware=${TIVA_ROOT}/firmware.ld
 ENTRY_firmware=Firmware_Startup

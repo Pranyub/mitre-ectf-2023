@@ -1,7 +1,5 @@
-/lib/BearSSL/build/
-/lib/BearSSL/libbearssl.a
-/lib/BearSSL/brssl
-/lib/BearSSL/testcrypto
-/lib/BearSSL/testspeed
-/lib/BearSSL/testx509
-/**/BearSSL
+.vscode
+.DS_Store
+._*
+commands
+**/BearSSL
