@@ -596,6 +596,10 @@ void rand_init(void) {
     //TODO: Update rand with temperature
     //
 
+    //SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+
+
+
     //override old source of persistent memory with new value
     br_hmac_drbg_generate(&ctx_rand, seed, SEED_SIZE);
     eeprom_write(seed, SEED_SIZE, EEPROM_RAND_ADDR);
