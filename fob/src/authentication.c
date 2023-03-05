@@ -728,17 +728,17 @@ void handle_upload_feature(uint8_t* packet) {
         c.feature_flags = 0;
     }
 
-    if(packet[2] == 0) {
+    if(packet[2] == 1) {
         c.feature_flags |= 0x01;
         memcpy(c.feature_a.data, &packet[1], 32 * sizeof(uint8_t));
         memcpy(c.feature_a.signature, &packet[33], 64 * sizeof(uint8_t));
     }
-    else if(packet[2] == 1) {
+    else if(packet[2] == 2) {
         c.feature_flags |= 0x02;
         memcpy(c.feature_b.data, &packet[1], 32);
         memcpy(c.feature_b.signature, &packet[33], 64);
     }
-    else if(packet[2] == 2) {
+    else if(packet[2] == 3) {
         c.feature_flags |= 0x04;
         memcpy(c.feature_c.data, &packet[1], 32);
         memcpy(c.feature_c.signature, &packet[33], 64);
@@ -810,12 +810,9 @@ void handle_pair_request(Message* packet) {
     Secrets out;
     memset(&out, 0, sizeof(Secrets));
 
+    //directly casting is for nerds
     uint32_t pin = packet->payload_buf[0] | (packet->payload_buf[1] << 8) | (packet->payload_buf[2] << 16) | (packet->payload_buf[3] << 24);
 
-    debug_print("PIN:");
-    uart_send_raw(HOST_UART, &pin, sizeof(pin));
-    uart_send_raw(HOST_UART, &dev_secrets.pair_pin, sizeof(dev_secrets.pair_pin));
-    debug_print("END");
     if(pin == dev_secrets.pair_pin) {
         #ifdef DEBUG
         debug_print("PAIR SUCCESS!");
@@ -843,8 +840,11 @@ void handle_pair_resp(Message* packet) {
 
     Secrets* s = (Secrets*) &packet->payload_buf;
     if(s->device_type != TO_P_FOB) {
+        uart_send_raw(HOST_UART, "pair failure", 12);
         return;
     }
+
+    uart_send_raw(HOST_UART, "pair success", 12);
 
     memcpy(&dev_secrets, s, sizeof(Secrets));
     eeprom_write(&dev_secrets, sizeof(Secrets), EEPROM_SECRETS_ADDR);

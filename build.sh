@@ -1,0 +1,2 @@
+python3 -m ectf_tools build.car_fob_pair --design . --name stablev2 --deployment featuretest --car-out carout --fob-out fobout --car-name carf1 --fob-name fobf1 --car-id 4 --pair-pin 123456
+python3 -m ectf_tools build.fob --design . --name stablev2 --deployment featuretest --fob-out ufobout --fob-name unpairedfob

@@ -30,23 +30,22 @@ def pair(unpaired_fob_bridge, paired_fob_bridge, pair_pin):
     paired_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     paired_sock.connect(("ectf-net", int(paired_fob_bridge)))
 
-    # Send pair commands to both fobs
-    unpaired_sock.send(b"pair\n")
-    paired_sock.send(b"pair\n")
+    #turn pin into a 4 byte little endian integer
+    pin = bytes.fromhex(pair_pin)[::-1] + b'\x00'
 
-    # Send pin to the paired fob
-    pair_pin_bytes = str.encode(pair_pin + "\n")
-    paired_sock.send(pair_pin_bytes)
+    # \x3c is the magic for a pair request
+    command = (b'\x3c' + pin).ljust(128)
+
+    unpaired_sock.send(command)
 
     # Set timeout for if pairing fails
     unpaired_sock.settimeout(5)
     # Try to receive data - if failed, pairing failed
     try:
-        pair_success = unpaired_sock.recv(6)
-        while len(pair_success) != 6:
-            pair_success += unpaired_sock.recv(6 - len(pair_success))
-
-        print(pair_success)
+        message = unpaired_sock.recv(12)
+        while len(message) != 12:
+            message += unpaired_sock.recv(12 - len(message))
+        print(message)
     except socket.timeout:
         print("Failed to pair fob")
 

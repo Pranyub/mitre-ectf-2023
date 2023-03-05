@@ -16,15 +16,12 @@ int main(void) {
     uart_init();
     rand_init();
     
-    uint8_t first_boot_flag[10];
-    eeprom_read(first_boot_flag, 10, EEPROM_FIRST_BOOT_FLAG);
+    uint32_t first_boot_flag;
+    eeprom_read(&first_boot_flag, sizeof(first_boot_flag), EEPROM_FIRST_BOOT_FLAG);
 
-    if(first_boot_flag[0] != 'F') {
-        first_boot_flag[0] = 'F';
-        eeprom_write("FFFFFFFFFFFF", 12, EEPROM_FIRST_BOOT_FLAG);
-
-        uint8_t test[10];
-        eeprom_read(test, 10, EEPROM_FIRST_BOOT_FLAG);
+    if(first_boot_flag != 'F') {
+        first_boot_flag = 'F';
+        eeprom_write(&first_boot_flag, sizeof(first_boot_flag), EEPROM_FIRST_BOOT_FLAG);
 
         #ifdef DEBUG
         debug_print("first boot");
@@ -46,6 +43,13 @@ int main(void) {
     debug_print("fob start\n");
     #endif
 
+
+    if(get_dev_type() == TO_P_FOB) {
+        // Change LED color: white
+        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1, GPIO_PIN_1); // r
+        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_PIN_2); // b
+        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, GPIO_PIN_3); // g
+    }
 
     while(true) {
         

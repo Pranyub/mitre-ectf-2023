@@ -36,6 +36,11 @@ int main(void) {
     #endif
 
     reset_state();
+    
+     // Change LED color: red
+    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1, GPIO_PIN_1); // r
+    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_2, 0); // b
+    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, 0); // g
 
     while(true) {
 

@@ -31,35 +31,37 @@ def enable(fob_bridge, package_name):
         message = fhandle.read()
 
     features = json.loads(message)
+
+    add_feat = (b'\x1a' + bytes.fromhex(features['feature'])).ljust(128)
+
     # Send package to fob
-    fob_sock.send(b'0ops\x1a' + bytes.fromhex(features['feature']) + b'A'*500)
+    fob_sock.send(add_feat)
     # Set timeout for if enable fails
     fob_sock.settimeout(5)
     # Try to receive data - if failed, enabling failed
     try:
 
-        enable_success = fob_sock.recv(79)
+        enable_success = fob_sock.recv(20)
+        while len(enable_success) != 20:
+            enable_success += fob_sock.recv(20 - len(enable_success))
 
-        while len(enable_success) != 79:
-            enable_success += fob_sock.recv(79 - len(enable_success))
+        query_feats = b'\x5e'.ljust(128)
+        fob_sock.send(query_feats)
 
-        enable_success = enable_success.lstrip(b'A')
+        feature_list = fob_sock.recv(11) 
 
-        fob_sock.send(b'0ops\x5e' + b'A' * 500)
+        while len(feature_list) != 11:
+            feature_list += fob_sock.recv(11 - len(feature_list))
 
-        feature_list = fob_sock.recv(70) 
+        sig_index = feature_list[-1]
 
-        while len(feature_list) != 70:
-            feature_list += fob_sock.recv(70 - len(feature_list))
+        signature = (b'\x2b' + bytes.fromhex(features['sigs'][str(sig_index)])).ljust(128)
 
-        feature_list = feature_list.lstrip('A')
+        fob_sock.send(signature)
 
-       
-        curr_features = fob_sock.recv(1)[0]
-
-        fob_sock.send(b'0ops\x2b' + bytes.fromhex(features['sigs'][str(curr_features)]) + b'A' * 500)
-
+        # fyi, doesn't show up sometimes, but feature still gets added
         print(enable_success)
+
     except socket.timeout:
         print("Failed to enable feature")
 
@@ -71,10 +73,6 @@ def enable(fob_bridge, package_name):
 # Main function handles parsing arguments and passing them to program
 # function.
 def main():
-
-    print('start', file=sys.stderr)
-    sys.stderr.flush()
-    exit()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
