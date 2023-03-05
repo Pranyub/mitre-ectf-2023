@@ -2,7 +2,6 @@
 #define AUTH_H
 
 #define FOB_TARGET
-#define DEVICE_TYPE TO_P_FOB
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -40,17 +39,19 @@
 #define FACTORY_ENTROPY SEC_FACTORY_ENTROPY
 #define PAIR_PIN SEC_PAIR_PIN
 #define CAR_ID SEC_CAR_ID
-#define CAR_SECRET SEC_PAIR_SECRET; //is there a better way to do this? naaahhhh :D
-const static uint8_t factory_pub[] = SEC_FACTORY_PUB;
+
+static uint8_t car_secret[] = SEC_PAIR_SECRET; //is there a better way to do this? naaahhhh :D
+static uint8_t factory_pub[] = SEC_FACTORY_PUB;
 
 #define EEPROM_FIRST_BOOT_FLAG 0x100
 #define EEPROM_SECRETS_ADDR 0x110
+
 static Secrets dev_secrets;
 
 //context for random number generator
 static br_hmac_drbg_context ctx_rand;
 static br_hmac_key_context ctx_hmac_key;
-static int is_random_set = 0; //bool to make sure random is set (unused)
+static uint32_t is_random_set = 0; //bool to make sure random is set (unused)
 
 /******************************************************************/
 /*         Variables to be used in conversation messaging         */
@@ -88,8 +89,10 @@ bool verify_message(Message* message);
 void rand_init(void);
 void rand_get_bytes(void* out, size_t len);
 
-void first_boot(void);
 void secrets_init(void);
+uint8_t get_dev_type(void);
+
+void first_boot(void);
 /******************************************************************/
 
 
@@ -115,18 +118,22 @@ bool handle_end(Message* message);
 #define BOARD_PAIR 0x4d
 #define QUERY_FEATURES 0x5e
 
+#define EEPROM_PIN_FLAGS 0x90
+
 typedef struct {
     uint8_t data[200];
 } HostPacket;
-
-
-
-static bool paired = PAIRED;
 
 void handle_host_msg(void);
 void handle_upload_feature(uint8_t* packet);
 void handle_query_features(uint8_t* packet);
 void handle_upload_sig(uint8_t* packet);
+
+
+void send_pair_request(uint8_t* packet);
+void handle_pair_request(Message* packet);
+void handle_pair_resp(Message* packet);
+
 #endif
 
 

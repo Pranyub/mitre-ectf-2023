@@ -29,27 +29,23 @@ def main():
     parser.add_argument("--paired", action="store_true")
     args = parser.parse_args()
 
-    print(args.paired)
-
-    f = open(args.secret_file, "r")
+    f = open('/secrets/car_secrets.json', "r")
     factory_secrets = json.load(f)
 
-    car = factory_secrets['car'+str(args.car_id)]
-
     dev_entropy = '{' + str([x for x in secrets.token_bytes(16)])[1:-1] + '}' #16 byte array
-    pair_sec    = '{' + str([x for x in bytes.fromhex(car['shared_key'])])[1:-1] + '}'
     fac_pub     = '{' + str([x for x in bytes.fromhex(factory_secrets['pubkey'])])[1:-1] + '}'
 
-    paired_secrets = ''
+    if(args.paired):
 
-    if args.paired:
+        car = factory_secrets['car'+str(args.car_id)]
+        pair_sec    = '{' + str([x for x in bytes.fromhex(car['shared_key'])])[1:-1] + '}'
 
         paired_secrets = f'''
         #ifndef __FOB_SECRETS__
         #define __FOB_SECRETS__
         
         #define PAIRED 1
-        #define SEC_PAIR_PIN {args.pair_pin}
+        #define SEC_PAIR_PIN 0x{args.pair_pin}
         #define SEC_CAR_ID {args.car_id}
         #define SEC_PAIR_SECRET {pair_sec}
         #define SEC_FACTORY_PUB {fac_pub}
@@ -64,7 +60,7 @@ def main():
         #define __FOB_SECRETS__
         
         #define PAIRED 0
-        #define SEC_PAIR_PIN 0
+        #define SEC_PAIR_PIN 0x00
         #define SEC_CAR_ID 255
         #define SEC_PAIR_SECRET {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
         #define SEC_FACTORY_PUB {fac_pub}
@@ -72,10 +68,6 @@ def main():
 
         #endif
         '''
-
-
-    print(paired_secrets)
-    print(args.header_file)
 
         # Write to header file
     with open(args.header_file, "w") as fp:

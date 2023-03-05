@@ -70,7 +70,7 @@ typedef struct {
     //uint8_t padding_a[2];
     uint8_t car_id;
     //uint8_t padding_b[3]
-    bool device_type;
+    uint8_t device_type;
     //uint8_t padding_c[3]
 } Secrets;
 
@@ -83,6 +83,10 @@ typedef struct {
         }                              \
     }                                  
 
+#ifdef DEBUG
+
 #define debug_print(string) \
     uart_send_raw(HOST_UART, (string), sizeof((string)) - 1)
+#endif
+
 #endif

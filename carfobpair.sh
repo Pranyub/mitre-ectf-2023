@@ -1,1 +1,0 @@
-python3 -m ectf_tools build.car_fob_pair --design . --name example --deployment d1 --car-out ./carout --fob-out ./fobout --car-name examplecarname --fob-name examplefobname --car-id 1 --pair-pin 123456

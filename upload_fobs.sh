@@ -1,0 +1,2 @@
+python3 -m ectf_tools device.load_hw --dev-in ./fobout --dev-name fobf1 --dev-serial /dev/cu.usbmodem0E2349B71 & \
+python3 -m ectf_tools device.load_hw --dev-in ./ufobout --dev-name unpairedfob --dev-serial /dev/cu.usbmodem0E2349AA1 \

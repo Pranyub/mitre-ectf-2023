@@ -2,10 +2,4 @@
 .DS_Store
 ._*
 commands
-fobout
 **/BearSSL
-fobout
-*.bin
-*.eeprom
-*.elf
-*.img

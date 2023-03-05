@@ -19,6 +19,7 @@ void init_message(Message* message) {
     safe_memset(&current_msg, 0, sizeof(current_msg));
     message->c_nonce = c_nonce;
     message->s_nonce = s_nonce;
+
     #ifdef CAR_TARGET
     message->target = TO_P_FOB;
     #endif
@@ -152,13 +153,29 @@ void message_sign_payload(Message* message, size_t size) {
  * @return true if the message was valid and parseable
  */
 bool parse_inc_message(void) {
+
     if(!uart_read_message(DEVICE_UART, &current_msg)) {
         //reset_state();
         return false;
     }
 
-    //remove second verification if slow
-    if(!verify_message(&current_msg) || !verify_message(&current_msg)) {
+    #ifdef FOB_TARGET
+
+    if(current_msg.msg_magic == 'P' && current_msg.target == dev_secrets.device_type) {
+        if(dev_secrets.device_type == TO_U_FOB) {
+            handle_pair_resp(&current_msg);
+        }
+        else if(dev_secrets.device_type == TO_P_FOB) {
+            handle_pair_request(&current_msg);
+        }
+
+        reset_state();
+        return true;
+    }
+
+    #endif
+
+    if(!verify_message(&current_msg)) {
         safe_memset(&current_msg, 0, sizeof(Message));
         #ifdef DEBUG
         debug_print("msg verification fail\n");
@@ -273,7 +290,7 @@ void gen_hello(void) {
  * See util.h for more information about the Conversation protocol.
  */
 void gen_solution(void) {
-
+    
     init_message(&current_msg);
 
     current_msg.msg_magic = SOLVE;
@@ -418,7 +435,7 @@ bool handle_solution(Message* message) {
     //verify the features are all valid
     CommandUnlock* cmd = &p->command;
 
-    if(cmd->feature_flags == 0) {
+    if(cmd->feature_flags == 0 || cmd->feature_flags == 0xff) {
         verified_features = 0;
         return true;
     }
@@ -447,13 +464,10 @@ bool handle_solution(Message* message) {
     br_sha256_update(&ctx_sha_f, &cmd->feature_flags, sizeof(cmd->feature_flags));
 
     br_sha256_update(&ctx_sha_f, &cmd->feature_a.data, sizeof(cmd->feature_a.data));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
 
     br_sha256_update(&ctx_sha_f, &cmd->feature_b.data, sizeof(cmd->feature_b.data));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
     
     br_sha256_update(&ctx_sha_f, &cmd->feature_c.data, sizeof(cmd->feature_c.data));
-    br_sha256_update(&ctx_sha_f, &cmd->feature_a.signature, sizeof(cmd->feature_a.signature));
 
     br_sha256_out(&ctx_sha_f, feat_hash);
 
@@ -463,7 +477,10 @@ bool handle_solution(Message* message) {
     pk.qlen = 65;
     uint32_t verification = br_ecdsa_i15_vrfy_raw(&br_ec_p256_m15, feat_hash, sizeof(feat_hash), &pk, &cmd->signature_multi, sizeof(cmd->signature_multi));
     
-    if(!verification) {
+    if(verification != 1) {
+        #ifdef DEBUG
+        debug_print("VERIFICATION FAILED");
+        #endif
         return false;
     }
 
@@ -489,7 +506,9 @@ void gen_chall(void) {
 
     PacketChallenge* p = (PacketChallenge*) &current_msg.payload_buf;
     rand_get_bytes(challenge, sizeof(challenge));
-    memcpy(challenge, p->chall, sizeof(challenge));
+    memcpy(p->chall, challenge, sizeof(challenge));
+
+    message_sign_payload(&current_msg, sizeof(PacketChallenge));
 
     next_packet_type = SOLVE;
     is_msg_ready = true;
@@ -604,23 +623,31 @@ void rand_init(void) {
 
 }
 
+void secrets_init(void) {
+    eeprom_read(&dev_secrets, sizeof(Secrets), EEPROM_SECRETS_ADDR);
+}
+
+uint8_t get_dev_type(void) {
+    return dev_secrets.device_type;
+}
+
 void first_boot(void) {
-    dev_secrets.car_secret = CAR_SECRET;
+    memcpy(dev_secrets.car_secret, car_secret, sizeof(car_secret));
     dev_secrets.pair_pin = PAIR_PIN;
     dev_secrets.car_id = CAR_ID;
 
+    #if defined(CAR_TARGET)
+    dev_secrets.device_type = TO_CAR;
+    #else
     if(PAIRED) {
-        dev_secrets.device_type = TO_P_FOB;
+         dev_secrets.device_type = TO_P_FOB;
     }
     else {
         dev_secrets.device_type = TO_U_FOB;
     }
+    #endif
 
-    eeprom_write(&dev_secrets, sizeof(Secrets), EEPROM_SECRETS_ADDR)
-}
-
-void secrets_init(void) {
-    eeprom_read(&dev_secrets, sizeof(Secrets), EEPROM_SECRETS_ADDR);
+    eeprom_write(&dev_secrets, sizeof(Secrets), EEPROM_SECRETS_ADDR);
 }
 
 
@@ -633,7 +660,6 @@ void secrets_init(void) {
 void rand_get_bytes(void* out, size_t len) {
     br_hmac_drbg_generate(&ctx_rand, out, len);
 }
-
 
 #define FOB_TARGET
 
@@ -656,6 +682,10 @@ void handle_host_msg(void) {
 
     else if(packet[0] == UPLOAD_SIG) {
         handle_upload_sig(packet);
+    }
+
+    else if(packet[0] == PAIR_CMD && dev_secrets.device_type == TO_U_FOB) {
+        send_pair_request(packet);
     }
 
 }
@@ -698,17 +728,17 @@ void handle_upload_feature(uint8_t* packet) {
         c.feature_flags = 0;
     }
 
-    if(packet[2] == 0) {
+    if(packet[2] == 1) {
         c.feature_flags |= 0x01;
         memcpy(c.feature_a.data, &packet[1], 32 * sizeof(uint8_t));
         memcpy(c.feature_a.signature, &packet[33], 64 * sizeof(uint8_t));
     }
-    else if(packet[2] == 1) {
+    else if(packet[2] == 2) {
         c.feature_flags |= 0x02;
         memcpy(c.feature_b.data, &packet[1], 32);
         memcpy(c.feature_b.signature, &packet[33], 64);
     }
-    else if(packet[2] == 2) {
+    else if(packet[2] == 3) {
         c.feature_flags |= 0x04;
         memcpy(c.feature_c.data, &packet[1], 32);
         memcpy(c.feature_c.signature, &packet[33], 64);
@@ -732,4 +762,92 @@ void handle_upload_sig(uint8_t* packet) {
     #endif
 }
 
+void send_pair_request(uint8_t* packet) {
+
+    #ifdef DEBUG
+    debug_print("PAIR REQ SENT");
+    #endif
+
+    uint32_t pin;
+    memcpy(&pin, packet + 1, sizeof(uint32_t));
+
+    Message m;
+    m.msg_magic = 'P';
+    m.target = TO_P_FOB;
+    m.payload_size = sizeof(uint32_t);
+    memcpy(&m.payload_buf, &pin, sizeof(uint32_t)); //two memcpys; peak efficiency :D
+
+    uart_send_message(DEVICE_UART, &m);
+    reset_state();
+}
+
+void handle_pair_request(Message* packet) {
+
+    uint8_t pairing;
+    size_t i;
+
+    #ifdef DEBUG
+    debug_print("PAIR REQ RECVD");
+    #endif
+
+    eeprom_read(&pairing, sizeof(uint8_t), EEPROM_PIN_FLAGS);
+
+    //means a previous pair process was prematurely terminated
+    if(pairing != (uint8_t) ~0xb6) {
+        for(i = 0; i < 2000 * 1000 * 4; i++) {
+            __asm__("nop");
+        }
+    }
+    
+    //some magic to hopefully prevent corruption (?)
+    pairing = 0xb6;
+    eeprom_write(&pairing, sizeof(uint8_t), EEPROM_PIN_FLAGS);
+
+    for(i = 0; i < 2000 * 1000; i++) {
+             __asm__("nop");
+    }
+    
+    Secrets out;
+    memset(&out, 0, sizeof(Secrets));
+
+    //directly casting is for nerds
+    uint32_t pin = packet->payload_buf[0] | (packet->payload_buf[1] << 8) | (packet->payload_buf[2] << 16) | (packet->payload_buf[3] << 24);
+
+    if(pin == dev_secrets.pair_pin) {
+        #ifdef DEBUG
+        debug_print("PAIR SUCCESS!");
+        #endif
+        memcpy(&out, &dev_secrets, sizeof(Secrets));
+    }
+
+    Message m;
+    m.msg_magic = 'P';
+    m.target = TO_U_FOB;
+    m.payload_size = sizeof(Secrets);
+    memcpy(m.payload_buf, &out, sizeof(Secrets));
+
+    pairing = (uint8_t) ~0xb6;
+    eeprom_write(&pairing, sizeof(uint8_t), EEPROM_PIN_FLAGS);
+
+    uart_send_message(DEVICE_UART, &m);
+    reset_state();
+}
+
+void handle_pair_resp(Message* packet) {
+    if(dev_secrets.device_type != TO_U_FOB) {
+        return;
+    }
+
+    Secrets* s = (Secrets*) &packet->payload_buf;
+    if(s->device_type != TO_P_FOB) {
+        uart_send_raw(HOST_UART, "pair failure", 12);
+        return;
+    }
+
+    uart_send_raw(HOST_UART, "pair success", 12);
+
+    memcpy(&dev_secrets, s, sizeof(Secrets));
+    eeprom_write(&dev_secrets, sizeof(Secrets), EEPROM_SECRETS_ADDR);
+
+}
 #endif

@@ -1,8 +1,7 @@
 #ifndef AUTH_H
 #define AUTH_H
 
-#define CAR_TARGET 1
-#define DEVICE_TYPE TO_CAR
+#define CAR_TARGET
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -16,7 +15,6 @@
 //random should be stored on EEPROM so it may persist on reset
 #define EEPROM_RAND_ADDR 0x200
 
-
 #ifdef FOB_TARGET
 
 #define EEPROM_SIG_ADDR 0x400
@@ -25,9 +23,9 @@
 
 #ifdef CAR_TARGET
 
-#define EEPROM_FEAT_A_ADDR 0x700
+#define EEPROM_FEAT_C_ADDR 0x700
 #define EEPROM_FEAT_B_ADDR 0x740
-#define EEPROM_FEAT_C_ADDR 0x780
+#define EEPROM_FEAT_A_ADDR 0x780
 #define EEPROM_UNLOCK_ADDR 0x7C0
 
 #endif
@@ -44,6 +42,9 @@
 static uint8_t car_secret[] = SEC_PAIR_SECRET; //is there a better way to do this? naaahhhh :D
 static uint8_t factory_pub[] = SEC_FACTORY_PUB;
 
+#define EEPROM_FIRST_BOOT_FLAG 0x650
+#define EEPROM_SECRETS_ADDR 0x110
+static Secrets dev_secrets;
 
 //context for random number generator
 static br_hmac_drbg_context ctx_rand;
@@ -85,6 +86,11 @@ bool verify_message(Message* message);
 
 void rand_init(void);
 void rand_get_bytes(void* out, size_t len);
+
+void secrets_init(void);
+uint8_t get_dev_type(void);
+
+void first_boot(void);
 /******************************************************************/
 
 

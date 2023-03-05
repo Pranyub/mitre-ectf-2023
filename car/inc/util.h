@@ -64,6 +64,15 @@ typedef struct {
     CommandUnlock command;
 } PacketSolution;
 
+typedef struct {
+    uint8_t car_secret[32];
+    uint32_t pair_pin;
+    //uint8_t padding_a[2];
+    uint8_t car_id;
+    //uint8_t padding_b[3]
+    uint8_t device_type;
+    //uint8_t padding_c[3]
+} Secrets;
 
 //will compiler optimize this away?
 //also isnt this just memset lol
