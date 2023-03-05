@@ -3,3 +3,5 @@
 ._*
 commands
 **/BearSSL
+__pycache__
+.flake8
