@@ -39,11 +39,19 @@ def enable(fob_bridge, package_name):
     # Set timeout for if enable fails
     fob_sock.settimeout(5)
     # Try to receive data - if failed, enabling failed
+    enable_success = ''
     try:
 
         enable_success = fob_sock.recv(20)
         while len(enable_success) != 20:
             enable_success += fob_sock.recv(20 - len(enable_success))
+
+    except socket.timeout:
+        sys.exit("Failed to enable feature")
+
+    return
+
+    try:
 
         query_feats = b'\x5e'.ljust(128)
         fob_sock.send(query_feats)
@@ -60,10 +68,11 @@ def enable(fob_bridge, package_name):
         fob_sock.send(signature)
 
         # fyi, doesn't show up sometimes, but feature still gets added
-        print(enable_success)
+        print('Enabled')
 
     except socket.timeout:
-        print("Failed to enable feature")
+        sys.exit("Failed to enable feature")
+    
 
     return 0
 
