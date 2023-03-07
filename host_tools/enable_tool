@@ -21,7 +21,7 @@ import sys
 # @param fob_bridge, bridged serial connection to fob
 # @param package_name, name of the package file to read from
 def enable(fob_bridge, package_name):
-
+    return
     # Connect fob socket to serial
     fob_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     fob_sock.connect(("ectf-net", int(fob_bridge)))
