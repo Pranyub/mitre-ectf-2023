@@ -174,8 +174,8 @@ bool parse_inc_message(void) {
     case CHALL:
         if(handle_chall(&current_msg)) {
             gen_solution();
-            break;
         }
+        break;
     case END:
         handle_end(&current_msg);
         reset_state();
@@ -186,13 +186,13 @@ bool parse_inc_message(void) {
     case HELLO:
         if(handle_hello(&current_msg)) {
             gen_chall();
-            break;
         }
+        break;
     case SOLVE:
         if(handle_solution(&current_msg)) {
             gen_end();
-            break;
         }
+        break;
     #endif
     default:
         #ifdef DEBUG
