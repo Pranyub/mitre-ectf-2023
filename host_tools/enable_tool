@@ -28,7 +28,7 @@ def enable(fob_bridge, package_name):
 
     features = json.loads(message)
 
-    add_feat = (b'\x1a' + bytes.fromhex(features['feature'])).ljust(127) + '\n'
+    add_feat = (b'\x1a' + bytes.fromhex(features['feature'])).ljust(127) + b'\n'
 
     # Connect fob socket to serial
     fob_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -40,7 +40,7 @@ def enable(fob_bridge, package_name):
     # Set timeout for if enable fails
     fob_sock.settimeout(5)
     # Try to receive data - if failed, enabling failed
-    enable_success = ''
+    enable_success = b''
     try:
 
         enable_success = fob_sock.recv(20)
