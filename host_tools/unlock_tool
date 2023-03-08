@@ -13,6 +13,7 @@
 # @copyright Copyright (c) 2023 The MITRE Corporation
 
 import socket
+import sys
 import argparse
 
 
@@ -38,7 +39,7 @@ def unlock(car_bridge):
 
     # If no data receive, unlock failed
     if len(unlock_received) == 0:
-        print("Failed to unlock")
+        sys.exit("Failed to unlock")
     # If data received, print out unlock message and features
     else:
         print(unlock_received)
