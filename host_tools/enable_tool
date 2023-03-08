@@ -39,8 +39,24 @@ def enable(fob_bridge, package_name):
     fob_sock.send(add_feat)
     # Set timeout for if enable fails
     fob_sock.settimeout(5)
+
+    try:
+        query_feats = b'\x5e'.ljust(128)
+        fob_sock.send(query_feats)
+
+        feature_list = fob_sock.recv(11) 
+
+        while len(feature_list) != 11:
+            feature_list += fob_sock.recv(11 - len(feature_list))
+        
+        return
+    except socket.timeout:
+        sys.exit('timeout')
+
+    return
     # Try to receive data - if failed, enabling failed
     enable_success = b''
+
     try:
 
         enable_success = fob_sock.recv(20)
