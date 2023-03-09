@@ -32,6 +32,7 @@ def dev_send(sock, msg):
         try:
             sock.recv(1)
         except socket.timeout:
+            raise Exception('dev_send timeout')
             sys.exit('timeout in dev send')
 
 
@@ -75,6 +76,7 @@ def enable(fob_bridge, package_name):
             print('got chunk')
         print(time.time() - q)
     except socket.timeout:
+        raise Exception('q timeout')
         sys.exit('timeout')
 
     print(time.time() - start)
