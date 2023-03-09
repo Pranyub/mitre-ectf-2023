@@ -18,6 +18,23 @@ import json
 import sys
 import time
 
+
+def dev_send(sock, msg):
+    sock.send(b'M')
+
+    msg = msg.ljust(128)
+
+    out = [msg[i:i+8] for i in range(0, len(msg), 8)]
+    print(out)
+
+    for chunk in out:
+        sock.send(chunk)
+        try:
+            sock.recv(1)
+        except socket.timeout:
+            sys.exit('timeout in dev send')
+
+
 # @brief Function to send commands to enable a feature on a fob
 # @param fob_bridge, bridged serial connection to fob
 # @param package_name, name of the package file to read from
@@ -31,7 +48,7 @@ def enable(fob_bridge, package_name):
 
     features = json.loads(message)
 
-    add_feat = (b'M\x1a' + bytes.fromhex(features['feature'])).ljust(127) + b'\n'
+    add_feat = (b'\x1a' + bytes.fromhex(features['feature']))
 
     # Connect fob socket to serial
     fob_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,27 +56,29 @@ def enable(fob_bridge, package_name):
 
     send = time.time()
     # Send package to fob
-    fob_sock.send(add_feat)
+    dev_send(fob_sock, add_feat)
+
     print(time.time() - send)
     # Set timeout for if enable fails
     fob_sock.settimeout(5)
 
     try:
-        query_feats = b'M\x5e'.ljust(128)
+        query_feats = b'M\x5e'
         q = time.time()
-        fob_sock.send(query_feats)
+        dev_send(fob_sock, query_feats)
         print(time.time() - q)
         feature_list = fob_sock.recv(11) 
 
         q = time.time()
         while len(feature_list) != 11:
             feature_list += fob_sock.recv(11 - len(feature_list))
+            print('got chunk')
         print(time.time() - q)
     except socket.timeout:
         sys.exit('timeout')
 
     print(time.time() - start)
-
+    raise Exception('garbage')
     return
     # Try to receive data - if failed, enabling failed
     enable_success = b''

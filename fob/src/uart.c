@@ -127,6 +127,9 @@ bool uart_read_host_data(const uint32_t PORT, void* message, size_t size) {
 
     for(size_t i = 0; i < size; i++) {
         ((uint8_t*) message)[i] = UARTCharGet(PORT);
+        if(i % 8 == 0) {
+            UARTCharPut(HOST_UART, '*');
+        }
     }
 
     return true;
