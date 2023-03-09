@@ -63,6 +63,8 @@ void uart_send_raw(const uint32_t PORT, void* message, size_t size);
 //read raw packet through UART interface. uart_init() must be called first
 void uart_read_raw(const uint32_t PORT, void* message, size_t size);
 
+bool uart_read_host_data(const uint32_t PORT, void* message, size_t size);
+
 bool uart_read_message(const uint32_t PORT, Message* message);
 
 //initialize EEPROM

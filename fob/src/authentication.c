@@ -671,7 +671,9 @@ void handle_host_msg(void) {
 
     uint8_t packet[128];
 
-    uart_read_raw(HOST_UART, packet, sizeof(packet));
+    if(!uart_read_host_data(HOST_UART, packet, sizeof(packet))) {
+        return;
+    }
 
     if(packet[0] == QUERY_FEATURES) {
         handle_query_features(packet);

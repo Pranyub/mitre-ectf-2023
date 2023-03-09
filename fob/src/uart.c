@@ -113,6 +113,25 @@ void uart_read_raw(const uint32_t PORT, void* message, size_t size) {
     }
 }
 
+bool uart_read_host_data(const uint32_t PORT, void* message, size_t size) {
+
+    while(UARTCharsAvail(PORT)) {
+        char c = UARTCharGet(PORT);
+        if(c == 'M') {
+            break;
+        }
+        else {
+            return false;
+        }
+    }
+
+    for(size_t i = 0; i < size; i++) {
+        ((uint8_t*) message)[i] = UARTCharGet(PORT);
+    }
+
+    return true;
+}
+
 //Possible error: apparently uart buffer size is only 16 bytes
 /**
  * @brief Attempts to read a message struct into a given buffer.
