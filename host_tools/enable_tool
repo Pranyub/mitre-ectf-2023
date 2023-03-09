@@ -27,7 +27,8 @@ def dev_send(sock, msg):
     out = [msg[i:i+8] for i in range(0, len(msg), 8)]
 
     for chunk in out:
-        sock.send(chunk)
+        a = sock.send(chunk)
+        raise Exception(a)
         try:
             a = sock.recv(1)
             raise Exception(a)
