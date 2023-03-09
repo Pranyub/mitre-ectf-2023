@@ -26,7 +26,7 @@ def dev_send(sock, msg):
 
     out = [msg[i:i+8] for i in range(0, len(msg), 8)]
     print(out)
-
+    raise Exception("HERE")
     for chunk in out:
         sock.send(chunk)
         try:
