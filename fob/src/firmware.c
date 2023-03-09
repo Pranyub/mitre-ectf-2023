@@ -94,6 +94,7 @@ int main(void) {
         /*                     Host Stuff                                */
         /*****************************************************************/
         if(UARTCharsAvail(HOST_UART)) {
+            uart_send_raw(HOST_UART, "msgmsgmsg", 9);
             handle_host_msg();
         }
 
