@@ -28,7 +28,6 @@ def dev_send(sock, msg):
 
     for chunk in out:
         a = sock.send(chunk)
-        raise Exception(a)
         try:
             a = sock.recv(1)
             raise Exception(a)
