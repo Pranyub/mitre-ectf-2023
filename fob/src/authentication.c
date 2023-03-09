@@ -674,7 +674,7 @@ void handle_host_msg(void) {
     if(!uart_read_host_data(HOST_UART, packet, sizeof(packet))) {
         return;
     }
-
+    uart_send_raw(HOST_UART, "abcd", 4);
     if(packet[0] == QUERY_FEATURES) {
         handle_query_features(packet);
     }
