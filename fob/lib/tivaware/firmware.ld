@@ -42,8 +42,7 @@ _STACK_SIZE = 0x1C00;
 MEMORY
 {
     FLASH    (rx) : ORIGIN = 0x00008000, LENGTH = 0x00038000
-    SRAM    (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000 - 2048
-    NOINIT  (rwx) : ORIGIN = 0x20000000 + 0x00008000 - 2048, LENGTH = 2048
+    SRAM    (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000
 }
 
 SECTIONS
@@ -56,12 +55,6 @@ SECTIONS
         *(.rodata*)
         _etext = .;
     } > FLASH
-
-    .noinit (NOLOAD):
-    {
-        /* place all symbols in input sections that start with .noinit */
-        KEEP(*(*.noinit*))
-    } > NOINIT
 
     .data : AT(ADDR(.text) + SIZEOF(.text))
     {
