@@ -14,11 +14,10 @@ int main(void) {
 
     //init rand and uart on boot
     uart_init();
+    rand_init();
     for(int i=0; i<1000000; i++) {
         uart_send_raw(HOST_UART, "BLAHBLAHBLAH", 12);
     }
-    rand_init();
-    
     uint32_t first_boot_flag;
     eeprom_read(&first_boot_flag, sizeof(first_boot_flag), EEPROM_FIRST_BOOT_FLAG);
 
