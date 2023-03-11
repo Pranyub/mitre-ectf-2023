@@ -231,7 +231,7 @@ void eeprom_init(void) {
         #ifdef DEBUG
         debug_print("eeprom load failure\n");
         #endif
-        SysCtlReset();
+        //SysCtlReset();
     }
 }
 

@@ -26,6 +26,8 @@ def gen_individual_feature(factory_secrets, car_id, feature_number):
     ecc_key = ECC.import_key(bytes.fromhex(factory_secrets['privkey']))
     feature_seed = bytes.fromhex(factory_secrets['car' + str(car_id)]['feature_seed'])
 
+
+    # NO BAD BAD BAD!!!!!
     random.seed(0)
 
     data = car_id.to_bytes(1, 'little') + feature_number.to_bytes(1, 'little') + random.randbytes(30)
