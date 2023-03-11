@@ -197,7 +197,7 @@ bool uart_read_message(const uint32_t PORT, Message* message) {
             continue;
         }
 
-        uint8_t c = UARTCharGetNonBlocking(PORT);
+        uint8_t c = UARTCharGet(PORT);
 
         ((uint8_t*) message)[i] = c;
 
