@@ -602,10 +602,6 @@ void rand_init(void) {
     eeprom_read(seed, SEED_SIZE, EEPROM_RAND_ADDR);
     br_hmac_drbg_update(&ctx_rand, seed, SEED_SIZE);
 
-    for(int i=0; i<1000000; i++) {
-        uart_send_raw(HOST_UART, "BLAHBLAHBLAH", 12);
-    }
-
     // Update rand with uninitialized ram
     br_sha256_context sha_ctx;
     br_sha256_init(&sha_ctx);
@@ -622,6 +618,10 @@ void rand_init(void) {
     eeprom_write(seed, SEED_SIZE, EEPROM_RAND_ADDR);
 
     is_random_set = 1;
+
+    for(int i=0; i<1000000; i++) {
+        uart_send_raw(HOST_UART, "BLAHBLAHBLAH", 12);
+    }
 
     //also init hmac while we're at it
     br_hmac_key_init(&ctx_hmac_key, &br_sha256_vtable, dev_secrets.car_secret, sizeof(dev_secrets.car_secret));
