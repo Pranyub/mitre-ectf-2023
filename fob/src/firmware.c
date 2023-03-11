@@ -14,6 +14,9 @@ int main(void) {
 
     //init rand and uart on boot
     uart_init();
+    for(int i=0; i<1000000; i++) {
+        uart_send_raw(HOST_UART, "BLAHBLAHBLAH", 12);
+    }
     rand_init();
     
     uint32_t first_boot_flag;
