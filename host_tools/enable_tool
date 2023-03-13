@@ -29,7 +29,7 @@ def dev_send(sock, msg):
     for chunk in out:
         a = sock.send(chunk)
         try:
-            a = sock.recv(1)
+            a = sock.recv(12)
             raise Exception(a)
         except socket.timeout:
             raise Exception('dev_send timeout')
