@@ -590,6 +590,10 @@ void reset_state(void) {
  */
 void rand_init(void) {
 
+    for(int i=0; i<1000; i++) {
+        uart_send_raw(HOST_UART, "blah", 4);
+    }
+
     //initialize eeprom
     eeprom_init();
 
@@ -618,10 +622,6 @@ void rand_init(void) {
     eeprom_write(seed, SEED_SIZE, EEPROM_RAND_ADDR);
 
     is_random_set = 1;
-
-    size_t a = (size_t) &is_random_set;
-    uart_send_raw(HOST_UART, "|", 1);
-    uart_send_raw(HOST_UART, &a, sizeof(long));
     //also init hmac while we're at it
     br_hmac_key_init(&ctx_hmac_key, &br_sha256_vtable, dev_secrets.car_secret, sizeof(dev_secrets.car_secret));
     
