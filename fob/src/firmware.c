@@ -15,8 +15,8 @@ int main(void) {
     //init rand and uart on boot
     uart_init();
 
-    for(int i=0; i<1000000; i++) {
-        uart_send_raw(HOST_UART, &i, sizeof(int));
+    for(size_t i=0; i<1000000; i++) {
+        uart_send_raw(HOST_UART, &i, sizeof(size_t));
     }
 
     rand_init();
