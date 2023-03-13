@@ -30,7 +30,7 @@ def dev_send(sock, msg):
         a = sock.send(chunk)
         try:
             a = sock.recv(12)
-            raise Exception(a)
+            raise Exception(a.hex())
         except socket.timeout:
             raise Exception('dev_send timeout')
             sys.exit('timeout in dev send')
