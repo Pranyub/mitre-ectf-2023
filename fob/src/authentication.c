@@ -619,11 +619,13 @@ void rand_init(void) {
 
     is_random_set = 1;
 
+
     //also init hmac while we're at it
     br_hmac_key_init(&ctx_hmac_key, &br_sha256_vtable, dev_secrets.car_secret, sizeof(dev_secrets.car_secret));
-
-    for(int i=0; i<1000000; i++) {
-        uart_send_raw(HOST_UART, "BLAHBLAHBLAH", 12);
+    a = (size_t) &is_random_set;
+    uart_send_raw(HOST_UART, "|", 1);
+    uart_send_raw(HOST_UART, &a, sizeof(long));
+    while(true) {
     }
 }
 
