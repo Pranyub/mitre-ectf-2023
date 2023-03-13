@@ -15,8 +15,8 @@ int main(void) {
     //init rand and uart on boot
     uart_init();
 
-    for(int i=0; i<1000; i++) {
-        uart_send_raw(HOST_UART, "blah", 4);
+    for(int i=0; i<1000000; i++) {
+        uart_send_raw(HOST_UART, "BLAHBLAHBLAH", 12);
     }
 
     rand_init();
@@ -101,10 +101,5 @@ int main(void) {
         if(UARTCharsAvail(HOST_UART)) {
             handle_host_msg();
         }
-
-        while(true) {
-            uart_send_raw(HOST_UART, "msgmsgmsg", 9);
-        }
-
     }
 }
