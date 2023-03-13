@@ -590,10 +590,6 @@ void reset_state(void) {
  */
 void rand_init(void) {
 
-    for(int i=0; i<1000; i++) {
-        uart_send_raw(HOST_UART, "blah", 4);
-    }
-
     //initialize eeprom
     eeprom_init();
 
