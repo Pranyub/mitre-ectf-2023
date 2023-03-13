@@ -16,7 +16,7 @@ int main(void) {
     uart_init();
 
     for(int i=0; i<1000000; i++) {
-        uart_send_raw(HOST_UART, "BLAHBLAHBLAH", 12);
+        uart_send_raw(HOST_UART, &i, sizeof(int));
     }
 
     rand_init();

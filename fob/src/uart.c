@@ -50,12 +50,14 @@ void uart_init(void) {
     /*********************************************************************/
 
     //Flush garbage data
+    /*
     while (UARTCharsAvail((uint32_t)UART1_BASE)) {
         UARTCharGet((uint32_t)UART1_BASE);
     }
     while (UARTCharsAvail((uint32_t)UART0_BASE)) {
         UARTCharGet((uint32_t)UART0_BASE);
     }
+    */
 }
 
 
